@@ -2,15 +2,15 @@
  * =================================================================
  * SCRIPT UTAMA DASHBOARD - SISTEM JURNAL & DISIPLIN GURU
  * =================================================================
- * @version 6.3 - Perbaikan Keamanan Fungsi Admin menggunakan RPC
+ * @version 6.4 - Final Fix: Aman membuat akun tanpa menendang sesi Admin
  */
 
 // ====================================================================
 // TAHAP 1: KONFIGURASI GLOBAL DAN STATE APLIKASI
 // ====================================================================
 
-const SUPABASE_URL = 'https://pbfhvyqhshuvyakjfpka.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZmh2eXFoc2h1dnlha2pmcGthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTY1NTksImV4cCI6MjEwNjk5MjU1OX0.RMDKCmkniLHoCgxsFr0noBlbB4DoqH1CTZc4lRtnPNg';
+const SUPABASE_URL = 'https://lkxjgsgkajpaloswedck.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxreGpnc2drYWpwYWxvc3dlZGNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDEyMjQsImV4cCI6MjA4NjE3NzIyNH0.A2KeArJQz6TNtLauZSyurMit3IK4hClwdoy4_qicPUc';
 
 // Cek Library
 if (typeof window.supabase === 'undefined') {
@@ -532,7 +532,7 @@ async function deletePenugasan(id) {
     loadPenugasanTable();
 }
 
-// --- Modul Admin: Pengguna (DIPERBARUI) ---
+// --- Modul Admin: Pengguna ---
 async function handlePenggunaSubmit(event) {
     event.preventDefault();
     const userIdToUpdate = document.getElementById('formUserIdToUpdate').value;
@@ -544,7 +544,7 @@ async function handlePenggunaSubmit(event) {
     showLoading(true);
 
     if (userIdToUpdate) {
-        // Logika UPDATE Menggunakan RPC
+        // Logika UPDATE Menggunakan RPC tetap aman
         if (password && password.length < 6) {
             showLoading(false);
             return showStatusMessage('Password baru minimal 6 karakter.', 'error');
@@ -562,16 +562,34 @@ async function handlePenggunaSubmit(event) {
         if (error) return showStatusMessage(`Gagal update pengguna: ${error.message}`, 'error');
         showStatusMessage('Data pengguna berhasil diperbarui.', 'success');
     } else {
-        // Logika CREATE Menggunakan RPC
-        const { error } = await supabaseClient.rpc('admin_create_user', {
-            new_email: email,
-            new_password: password,
-            new_full_name: nama,
-            new_role: role
+        // Logika CREATE: Menggunakan trik native signUp tanpa logout Admin
+        if (!password || password.length < 6) {
+            showLoading(false);
+            return showStatusMessage('Password wajib diisi minimal 6 karakter.', 'error');
+        }
+
+        // Trik Jitu: Buat koneksi sementara khusus daftar akun yang tidak menimpa sesi Admin
+        const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { 
+                persistSession: false, 
+                autoRefreshToken: false 
+            }
+        });
+
+        const { error } = await tempClient.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    full_name: nama,
+                    role: role
+                }
+            }
         });
 
         showLoading(false);
         if (error) return showStatusMessage(`Gagal membuat pengguna: ${error.message}`, 'error');
+        
         showStatusMessage(`Pengguna ${email} berhasil dibuat!`, 'success');
     }
 
