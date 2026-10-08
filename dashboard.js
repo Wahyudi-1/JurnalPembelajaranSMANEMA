@@ -2,8 +2,7 @@
  * =================================================================
  * SCRIPT UTAMA DASHBOARD - SISTEM JURNAL & DISIPLIN GURU
  * =================================================================
- * @version 6.2 - Fix "Identifier already declared" (Renaming to supabaseClient)
- * @author Disesuaikan oleh AI untuk Proyek Anda
+ * @version 6.3 - Perbaikan Keamanan Fungsi Admin menggunakan RPC
  */
 
 // ====================================================================
@@ -19,8 +18,6 @@ if (typeof window.supabase === 'undefined') {
 }
 
 const { createClient } = window.supabase;
-
-// [PERBAIKAN] Menggunakan nama 'supabaseClient' dan 'var' untuk mencegah konflik
 var supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const AppState = {
@@ -52,7 +49,6 @@ function showStatusMessage(message, type = 'info', duration = 4000) {
     statusEl.textContent = message;
     statusEl.className = `status-message ${type}`;
     statusEl.style.display = 'block';
-    // Scroll agar pesan terlihat
     statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
     if (duration > 0) setTimeout(() => { statusEl.style.display = 'none'; }, duration);
@@ -63,7 +59,6 @@ function populateDropdown(selectElementId, data, valueField, textField, defaultO
     if (!select) return;
     select.innerHTML = `<option value="">-- ${defaultOptionText} --</option>`;
     
-    // Filter item unik
     const uniqueItems = [...new Map(data.map(item => [item[valueField], item])).values()];
     
     uniqueItems.forEach(item => {
@@ -75,23 +70,19 @@ function populateDropdown(selectElementId, data, valueField, textField, defaultO
 }
 
 // ====================================================================
-// TAHAP 3: FUNGSI OTENTIKASI & MANAJEMEN SESI (KHUSUS DASHBOARD)
+// TAHAP 3: FUNGSI OTENTIKASI & MANAJEMEN SESI
 // ====================================================================
 
 async function checkAuthenticationAndSetup() {
-    // Gunakan supabaseClient
     const { data: { session } } = await supabaseClient.auth.getSession();
     
-    // Jika tidak ada sesi, pengguna tidak boleh berada di dashboard.
     if (!session) {
         window.location.replace('index.html');
         return;
     }
     
-    // Jika ada sesi, lanjutkan setup
     AppState.user = session.user;
     
-    // Ambil data profil dari tabel 'profiles'
     const { data: profileData, error } = await supabaseClient
         .from('profiles')
         .select('*')
@@ -104,10 +95,8 @@ async function checkAuthenticationAndSetup() {
         if(welcomeEl) welcomeEl.textContent = `Selamat Datang, ${profileData.full_name || session.user.email}!`;
     } else {
         console.warn("Profil tidak ditemukan:", error);
-        // Fallback jika profil belum dibuat trigger
         const welcomeEl = document.getElementById('welcomeMessage');
         if(welcomeEl) welcomeEl.textContent = `Selamat Datang, ${session.user.email}!`;
-        // Set dummy profile agar UI tidak crash
         AppState.profile = { role: 'Guru', full_name: session.user.email }; 
     }
 }
@@ -120,12 +109,10 @@ async function handleLogout() {
     window.location.replace('index.html');
 }
 
-
 // ====================================================================
-// TAHAP 4: FUNGSI UTAMA APLIKASI (SEMUA LOGIKA DASHBOARD)
+// TAHAP 4: FUNGSI UTAMA APLIKASI
 // ====================================================================
 
-// --- 4.1 Inisialisasi & Kontrol UI ---
 async function checkUserRoleAndSetupUI() {
     if (!AppState.profile) return;
     const adminElements = document.querySelectorAll('.admin-only');
@@ -134,7 +121,6 @@ async function checkUserRoleAndSetupUI() {
         adminElements.forEach(el => el.style.display = 'none');
     } else {
         adminElements.forEach(el => {
-             // Pastikan display block untuk div, inline-block untuk tombol jika perlu
              el.style.display = el.tagName === 'DIV' ? 'block' : 'inline-block';
          });
     }
@@ -143,19 +129,16 @@ async function checkUserRoleAndSetupUI() {
 async function loadInitialData() {
     showLoading(true);
     
-    // Ambil data secara paralel
     const promises = [
         supabaseClient.from('penugasan_guru').select('kelas, mata_pelajaran').eq('guru_id', AppState.user.id),
         supabaseClient.from('siswa').select('nisn, nama, kelas').order('nama'),
         supabaseClient.from('pelanggaran_master').select('id, deskripsi').order('deskripsi')
     ];
 
-    // Jika Admin, ambil data tambahan
     if (AppState.profile.role === 'Admin') {
         promises.push(supabaseClient.from('profiles').select('id, full_name').eq('role', 'Guru').order('full_name'));
         promises.push(supabaseClient.from('penugasan_guru').select('*, profiles(full_name)').order('kelas'));
     } else {
-        // Placeholder agar array destructuring tidak error
         promises.push(Promise.resolve({ data: [] }));
         promises.push(Promise.resolve({ data: [] }));
     }
@@ -180,24 +163,18 @@ function populateInitialDropdowns() {
     }
 }
 
-// --- 4.2 Fungsi Modul Jurnal & Riwayat Jurnal ---
+// --- Modul Jurnal ---
 async function loadSiswaForJurnal() {
     const kelas = document.getElementById('jurnalKelas').value;
     const mapel = document.getElementById('jurnalMapel').value;
     const tableBody = document.getElementById('presensiTableBody');
 
-    if (!kelas || !mapel) {
-        return showStatusMessage('Harap pilih Kelas dan Mata Pelajaran terlebih dahulu.', 'error');
-    }
+    if (!kelas || !mapel) return showStatusMessage('Harap pilih Kelas dan Mata Pelajaran terlebih dahulu.', 'error');
 
     showLoading(true);
     tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center;">Memuat data siswa...</td></tr>`;
 
-    const { data, error } = await supabaseClient
-        .from('siswa')
-        .select('nisn, nama')
-        .eq('kelas', kelas)
-        .order('nama');
+    const { data, error } = await supabaseClient.from('siswa').select('nisn, nama').eq('kelas', kelas).order('nama');
 
     showLoading(false);
 
@@ -250,10 +227,7 @@ async function handleJurnalSubmit(event) {
         if (row.dataset.nisn) { 
             const status = row.querySelector('.kehadiran-status').value;
             if (status !== 'Hadir') {
-                siswaTidakHadir.push({
-                    nama: row.dataset.nama,
-                    status: status
-                });
+                siswaTidakHadir.push({ nama: row.dataset.nama, status: status });
             }
         }
     });
@@ -264,24 +238,19 @@ async function handleJurnalSubmit(event) {
         catatanPresensi += siswaTidakHadir.map(s => `${s.nama}: ${s.status}`).join('\n');
     }
     
-    if (jurnalData.catatan && siswaTidakHadir.length > 0) {
-        jurnalData.catatan += " "; 
-    }
+    if (jurnalData.catatan && siswaTidakHadir.length > 0) jurnalData.catatan += " "; 
     jurnalData.catatan += catatanPresensi;
 
     const siswaDiKelas = AppState.students.filter(s => s.kelas === jurnalData.kelas);
-    if (siswaDiKelas.length > 0 && presensiRows[0]?.cells[0].textContent.includes('Pilih kelas')) {
+    if (siswaDiKelas.length > 0 && presensiRows[0]?.cells?.[0]?.textContent.includes('Pilih kelas')) {
          return showStatusMessage('Harap klik "Tampilkan Siswa untuk Presensi" terlebih dahulu.', 'error');
     }
 
     showLoading(true);
-    // Gunakan supabaseClient
     const { error } = await supabaseClient.from('jurnal_pelajaran').insert(jurnalData);
     showLoading(false);
     
-    if (error) {
-        return showStatusMessage(`Gagal menyimpan jurnal: ${error.message}`, 'error');
-    }
+    if (error) return showStatusMessage(`Gagal menyimpan jurnal: ${error.message}`, 'error');
     
     showStatusMessage('Jurnal & presensi berhasil disimpan!', 'success');
     event.target.reset();
@@ -294,7 +263,6 @@ async function loadRiwayatJurnal() {
     tableBody.innerHTML = '<tr><td colspan="6">Memuat riwayat...</td></tr>';
     
     showLoading(true);
-    // Gunakan supabaseClient
     let query = supabaseClient.from('jurnal_pelajaran').select('*').order('tanggal', { ascending: false });
     if (AppState.profile.role !== 'Admin') {
         query = query.eq('guru_id', AppState.user.id);
@@ -368,9 +336,7 @@ function applyRiwayatFilter() {
 
 function exportRiwayatToExcel() {
     const dataToExport = AppState.filteredJurnalHistory;
-    if (dataToExport.length === 0) {
-        return showStatusMessage('Tidak ada data untuk diekspor.', 'info');
-    }
+    if (dataToExport.length === 0) return showStatusMessage('Tidak ada data untuk diekspor.', 'info');
 
     const formattedData = dataToExport.map(j => ({
         Tanggal: new Date(j.tanggal).toLocaleDateString('id-ID'),
@@ -388,10 +354,9 @@ function exportRiwayatToExcel() {
 
 async function editJurnalHandler(jurnalId) {
     showStatusMessage('Fitur "Ubah" sedang dalam pengembangan.', 'info');
-    console.log(`Edit diminta untuk Jurnal ID: ${jurnalId}`);
 }
 
-// --- 4.3 Fungsi Modul Disiplin & Riwayat Disiplin ---
+// --- Modul Disiplin ---
 function setupSiswaSearch() {
     const searchInput = document.getElementById('nisnDisiplinInput');
     const suggestionsContainer = document.getElementById('nisnSuggestions');
@@ -402,10 +367,7 @@ function setupSiswaSearch() {
     searchInput.addEventListener('input', () => {
         const query = searchInput.value.toLowerCase();
         suggestionsContainer.style.display = 'block';
-        if (query.length < 2) {
-            suggestionsContainer.innerHTML = '';
-            return;
-        }
+        if (query.length < 2) { suggestionsContainer.innerHTML = ''; return; }
         const filteredSiswa = AppState.students.filter(s => 
             s.nama.toLowerCase().includes(query) || s.nisn.includes(query)
         ).slice(0, 5);
@@ -421,10 +383,8 @@ function setupSiswaSearch() {
 
     suggestionsContainer.addEventListener('click', (e) => {
         if (e.target.classList.contains('suggestion-item')) {
-            const nisn = e.target.dataset.nisn;
-            const nama = e.target.dataset.nama;
-            searchInput.value = nisn;
-            namaSiswaInput.value = nama;
+            searchInput.value = e.target.dataset.nisn;
+            namaSiswaInput.value = e.target.dataset.nama;
             suggestionsContainer.innerHTML = '';
             suggestionsContainer.style.display = 'none';
         }
@@ -438,13 +398,12 @@ async function handleDisiplinSubmit(event) {
         id_pelanggaran: document.getElementById('deskripsiDisiplinInput').value,
         pencatat_id: AppState.user.id
     };
-    if (!disiplinData.nisn_siswa || !disiplinData.id_pelanggaran) {
-        return showStatusMessage('Harap pilih siswa dan jenis pelanggaran.', 'error');
-    }
+    if (!disiplinData.nisn_siswa || !disiplinData.id_pelanggaran) return showStatusMessage('Harap pilih siswa dan jenis pelanggaran.', 'error');
+    
     showLoading(true);
-    // Gunakan supabaseClient
     const { error } = await supabaseClient.from('catatan_disiplin').insert(disiplinData);
     showLoading(false);
+    
     if (error) return showStatusMessage(`Gagal menyimpan: ${error.message}`, 'error');
     showStatusMessage('Catatan disiplin berhasil disimpan!', 'success');
     event.target.reset();
@@ -457,18 +416,10 @@ async function loadRiwayatDisiplin() {
     tableBody.innerHTML = '<tr><td colspan="7">Memuat riwayat...</td></tr>';
 
     showLoading(true);
-    // Gunakan supabaseClient
     const { data, error } = await supabaseClient
         .from('catatan_disiplin')
-        .select(`
-            id,
-            created_at,
-            siswa (nisn, nama),
-            pelanggaran_master (deskripsi, poin),
-            profiles (full_name)
-        `)
+        .select(`id, created_at, siswa (nisn, nama), pelanggaran_master (deskripsi, poin), profiles (full_name)`)
         .order('created_at', { ascending: false });
-    
     showLoading(false);
 
     if (error) {
@@ -525,11 +476,9 @@ function applyRiwayatDisiplinFilter() {
 
 async function editDisiplinHandler(catatanId) {
     showStatusMessage('Fitur "Ubah Catatan Disiplin" sedang dalam pengembangan.', 'info');
-    console.log(`Edit diminta untuk Catatan Disiplin ID: ${catatanId}`);
 }
 
-
-// --- 4.4 Fungsi Modul Admin (Penugasan & Pengguna) ---
+// --- Modul Admin: Penugasan ---
 async function handlePenugasanSubmit(event) {
     event.preventDefault();
     const penugasanData = {
@@ -538,12 +487,13 @@ async function handlePenugasanSubmit(event) {
         mata_pelajaran: document.getElementById('penugasanMapel').value.trim()
     };
     showLoading(true);
-    // Gunakan supabaseClient
     const { error } = await supabaseClient.from('penugasan_guru').insert(penugasanData);
     showLoading(false);
+    
     if (error) return showStatusMessage(`Gagal menyimpan: ${error.message}`, 'error');
     showStatusMessage('Penugasan berhasil disimpan!', 'success');
     event.target.reset();
+    
     const { data } = await supabaseClient.from('penugasan_guru').select('*, profiles(full_name)');
     if(data) AppState.allAssignments = data;
     loadPenugasanTable();
@@ -571,65 +521,58 @@ function loadPenugasanTable() {
 async function deletePenugasan(id) {
     if (!confirm('Yakin ingin menghapus penugasan ini?')) return;
     showLoading(true);
-    // Gunakan supabaseClient
     const { error } = await supabaseClient.from('penugasan_guru').delete().eq('id', id);
     showLoading(false);
+    
     if (error) return showStatusMessage(`Gagal menghapus: ${error.message}`, 'error');
     showStatusMessage('Penugasan berhasil dihapus.', 'success');
+    
     const { data } = await supabaseClient.from('penugasan_guru').select('*, profiles(full_name)');
     if(data) AppState.allAssignments = data;
     loadPenugasanTable();
 }
 
+// --- Modul Admin: Pengguna (DIPERBARUI) ---
 async function handlePenggunaSubmit(event) {
     event.preventDefault();
     const userIdToUpdate = document.getElementById('formUserIdToUpdate').value;
+    const nama = document.getElementById('formNamaPengguna').value;
+    const email = document.getElementById('formEmailPengguna').value;
+    const password = document.getElementById('formPasswordPengguna').value;
+    const role = document.getElementById('formPeran').value;
+
+    showLoading(true);
 
     if (userIdToUpdate) {
-        // --- LOGIKA UPDATE ---
-        const updates = {
-            email: document.getElementById('formEmailPengguna').value,
-            data: {
-                full_name: document.getElementById('formNamaPengguna').value,
-                role: document.getElementById('formPeran').value,
-            },
-        };
-        const password = document.getElementById('formPasswordPengguna').value;
-        if (password) {
-            if (password.length < 6) return showStatusMessage('Password baru minimal 6 karakter.', 'error');
-            updates.password = password;
+        // Logika UPDATE Menggunakan RPC
+        if (password && password.length < 6) {
+            showLoading(false);
+            return showStatusMessage('Password baru minimal 6 karakter.', 'error');
         }
 
-        showLoading(true);
-        // Gunakan supabaseClient
-        const { data: { user }, error } = await supabaseClient.auth.admin.updateUserById(userIdToUpdate, updates);
-        showLoading(false);
+        const { error } = await supabaseClient.rpc('admin_update_user', {
+            target_id: userIdToUpdate,
+            new_email: email,
+            new_password: password || null,
+            new_full_name: nama,
+            new_role: role
+        });
 
+        showLoading(false);
         if (error) return showStatusMessage(`Gagal update pengguna: ${error.message}`, 'error');
         showStatusMessage('Data pengguna berhasil diperbarui.', 'success');
     } else {
-        // --- LOGIKA CREATE ---
-        const nama = document.getElementById('formNamaPengguna').value;
-        const email = document.getElementById('formEmailPengguna').value;
-        const password = document.getElementById('formPasswordPengguna').value;
-        const role = document.getElementById('formPeran').value;
-        
-        showLoading(true);
-        // Gunakan supabaseClient
-        const { data, error } = await supabaseClient.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: nama,
-                    role: role
-                }
-            }
+        // Logika CREATE Menggunakan RPC
+        const { error } = await supabaseClient.rpc('admin_create_user', {
+            new_email: email,
+            new_password: password,
+            new_full_name: nama,
+            new_role: role
         });
-        showLoading(false);
 
+        showLoading(false);
         if (error) return showStatusMessage(`Gagal membuat pengguna: ${error.message}`, 'error');
-        if (data.user) showStatusMessage(`Pengguna ${email} berhasil dibuat!`, 'success');
+        showStatusMessage(`Pengguna ${email} berhasil dibuat!`, 'success');
     }
 
     resetPenggunaForm();
@@ -642,7 +585,6 @@ async function loadUsersTable() {
     tableBody.innerHTML = '<tr><td colspan="4">Memuat data pengguna...</td></tr>';
     showLoading(true);
 
-    // Gunakan supabaseClient
     const { data, error } = await supabaseClient.rpc('get_all_users');
     showLoading(false);
 
@@ -700,13 +642,11 @@ async function deleteUserHandler(userId) {
     if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.')) return;
     
     showLoading(true);
-    // Gunakan supabaseClient
-    const { data, error } = await supabaseClient.auth.admin.deleteUser(userId);
+    // Logika DELETE Menggunakan RPC
+    const { error } = await supabaseClient.rpc('admin_delete_user', { target_user_id: userId });
     showLoading(false);
 
-    if (error) {
-        return showStatusMessage(`Gagal menghapus pengguna: ${error.message}`, 'error');
-    }
+    if (error) return showStatusMessage(`Gagal menghapus pengguna: ${error.message}`, 'error');
 
     showStatusMessage('Pengguna berhasil dihapus.', 'success');
     loadUsersTable();
@@ -723,17 +663,13 @@ function resetPenggunaForm() {
     document.getElementById('submitPenggunaButton').textContent = 'Buat Pengguna Baru';
 }
 
-
-// --- 4.5 Fungsi Modul Manajemen Siswa (Admin) ---
+// --- Modul Admin: Siswa ---
 async function refreshSiswaData() {
     showLoading(true);
-    // Gunakan supabaseClient
     const { data: updatedSiswa, error } = await supabaseClient.from('siswa').select('nisn, nama, kelas').order('nama');
     showLoading(false);
     
-    if (error) {
-        return showStatusMessage('Gagal memuat ulang data siswa.', 'error');
-    }
+    if (error) return showStatusMessage('Gagal memuat ulang data siswa.', 'error');
 
     if (updatedSiswa) {
         AppState.students = updatedSiswa;
@@ -743,9 +679,8 @@ async function refreshSiswaData() {
 }
 
 function exportSiswaToExcel() {
-    if (AppState.students.length === 0) {
-        return showStatusMessage('Tidak ada data siswa untuk diekspor.', 'info');
-    }
+    if (AppState.students.length === 0) return showStatusMessage('Tidak ada data siswa untuk diekspor.', 'info');
+    
     const worksheet = XLSX.utils.json_to_sheet(AppState.students);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Data Siswa");
@@ -769,15 +704,15 @@ async function handleSiswaImport(event) {
 
             if (dataToInsert.length === 0) {
                 showLoading(false);
-                return showStatusMessage('File CSV tidak berisi data yang valid. Pastikan header adalah: nisn, nama, kelas.', 'error');
+                return showStatusMessage('File CSV tidak valid. Header harus: nisn, nama, kelas.', 'error');
             }
 
-            // Gunakan supabaseClient
             const { error } = await supabaseClient.from('siswa').upsert(dataToInsert, { onConflict: 'nisn' });
             
             showLoading(false);
-            if (error) { return showStatusMessage(`Gagal mengimpor data: ${error.message}`, 'error'); }
-            showStatusMessage(`${dataToInsert.length} data siswa berhasil diimpor/diperbarui!`, 'success');
+            if (error) return showStatusMessage(`Gagal mengimpor data: ${error.message}`, 'error');
+            
+            showStatusMessage(`${dataToInsert.length} data siswa berhasil diimpor!`, 'success');
             await refreshSiswaData();
         },
         error: function(err) {
@@ -816,23 +751,21 @@ async function saveSiswaHandler(event) {
         nama: document.getElementById('formNama').value.trim(),
         kelas: document.getElementById('formKelas').value.trim(),
     };
-    if (!siswaData.nisn || !siswaData.nama || !siswaData.kelas) {
-        return showStatusMessage('Semua kolom siswa wajib diisi.', 'error');
-    }
+    if (!siswaData.nisn || !siswaData.nama || !siswaData.kelas) return showStatusMessage('Semua kolom wajib diisi.', 'error');
+    
     showLoading(true);
     let error;
     if (oldNisn) {
-        // Gunakan supabaseClient
-        const { error: updateError } = await supabaseClient.from('siswa').update( siswaData).eq('nisn', oldNisn);
+        const { error: updateError } = await supabaseClient.from('siswa').update(siswaData).eq('nisn', oldNisn);
         error = updateError;
     } else {
-        // Gunakan supabaseClient
         const { error: insertError } = await supabaseClient.from('siswa').insert(siswaData);
         error = insertError;
     }
     showLoading(false);
-    if (error) return showStatusMessage(`Gagal menyimpan data siswa: ${error.message}`, 'error');
-    showStatusMessage(oldNisn ? 'Data siswa berhasil diperbarui.' : 'Siswa baru berhasil ditambahkan.', 'success');
+    
+    if (error) return showStatusMessage(`Gagal menyimpan: ${error.message}`, 'error');
+    showStatusMessage(oldNisn ? 'Data diperbarui.' : 'Siswa ditambahkan.', 'success');
     resetFormSiswa();
     await refreshSiswaData();
 }
@@ -856,19 +789,18 @@ function resetFormSiswa() {
 }
 
 async function deleteSiswaHandler(nisn) {
-    if (!confirm(`Yakin ingin menghapus siswa dengan NISN: ${nisn}? Tindakan ini tidak dapat dibatalkan.`)) return;
+    if (!confirm(`Yakin ingin menghapus siswa dengan NISN: ${nisn}?`)) return;
 
     showLoading(true);
-    // Gunakan supabaseClient
     const { error } = await supabaseClient.from('siswa').delete().eq('nisn', nisn);
     showLoading(false);
+    
     if (error) return showStatusMessage(`Gagal menghapus siswa: ${error.message}`, 'error');
 
     showStatusMessage('Siswa berhasil dihapus.', 'success');
     AppState.students = AppState.students.filter(s => s.nisn !== nisn);
     loadSiswaTable();
 }
-
 
 // ====================================================================
 // TAHAP 5: INISIALISASI DAN EVENT LISTENERS
@@ -895,7 +827,6 @@ function setupDashboardListeners() {
         });
     });
 
-    // Event listeners untuk form
     document.getElementById('formJurnal')?.addEventListener('submit', handleJurnalSubmit);
     document.getElementById('formDisiplin')?.addEventListener('submit', handleDisiplinSubmit);
     document.getElementById('formPenugasan')?.addEventListener('submit', handlePenugasanSubmit);
@@ -904,12 +835,9 @@ function setupDashboardListeners() {
     document.getElementById('resetSiswaButton')?.addEventListener('click', resetFormSiswa);
     document.getElementById('resetPenggunaButton')?.addEventListener('click', resetPenggunaForm);
     
-    // Event listeners untuk tombol aksi
     document.getElementById('refreshSiswaButton')?.addEventListener('click', refreshSiswaData);
     document.getElementById('exportSiswaButton')?.addEventListener('click', exportSiswaToExcel);
-    document.getElementById('importSiswaButton')?.addEventListener('click', () => {
-        document.getElementById('importSiswaInput').click();
-    });
+    document.getElementById('importSiswaButton')?.addEventListener('click', () => document.getElementById('importSiswaInput').click());
     document.getElementById('importSiswaInput')?.addEventListener('change', handleSiswaImport);
     document.getElementById('loadSiswaForJurnalButton')?.addEventListener('click', loadSiswaForJurnal);
     document.getElementById('filterRiwayatButton')?.addEventListener('click', applyRiwayatFilter);
@@ -922,21 +850,17 @@ function setupDashboardListeners() {
 }
 
 async function initDashboardPage() {
-    console.log("Inisialisasi Dashboard...");
     await checkAuthenticationAndSetup();
     if (AppState.user) {
         await checkUserRoleAndSetupUI();
         await loadInitialData();
         populateInitialDropdowns();
         setupDashboardListeners();
-        // Secara otomatis klik tombol navigasi pertama
         document.querySelector('.sidebar-nav .btn-nav')?.click();
     }
 }
 
-// --- Titik Masuk Aplikasi ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Pastikan kita berada di halaman dashboard sebelum menjalankan inisialisasi
     if (document.querySelector('.dashboard-wrapper')) {
         initDashboardPage();
     }
