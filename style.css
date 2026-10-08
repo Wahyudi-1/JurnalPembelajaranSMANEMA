@@ -1,277 +1,355 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <!-- Meta Viewport Penting untuk Responsivitas Mobile -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard - Sistem Jurnal & Disiplin SMANEMA</title>
+/**
+ * =================================================================
+ * CSS UTAMA - SISTEM JURNAL & DISIPLIN GURU (RESPONSIVE UPDATE)
+ * =================================================================
+ */
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+:root {
+    --primary-color: #4a90e2;
+    --primary-dark: #357ABD;
+    --secondary-color: #f4f7fc;
+    --accent-color: #50e3c2;
+    --accent-dark: #40b59b;
+    --text-color: #333333;
+    --text-light: #6c757d;
+    --border-color: #dfe4ea;
+    --white-color: #ffffff;
+    --danger-color: #e74c3c;
+    --danger-dark: #c0392b;
+    --success-color: #2ecc71;
+    --success-dark: #27ae60;
+    --font-family: 'Poppins', sans-serif;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.1);
+    --border-radius: 8px;
+    --transition-speed: 0.3s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* =========================================================
+   HEADER GLOBAL
+   ========================================================= */
+header {
+    background: var(--white-color);
+    padding: 1rem 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-brand img { height: 40px; width: auto; }
+.header-brand .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary-color); line-height: 1.2;}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-welcome {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* =========================================================
+   LAYOUT DASHBOARD
+   ========================================================= */
+.dashboard-wrapper {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 70px);
+}
+
+.sidebar-nav {
+    background-color: var(--white-color);
+    padding: 1.5rem 1rem;
+    border-right: 1px solid var(--border-color);
+}
+
+.sidebar-nav h4 {
+    color: var(--text-light);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin: 1rem 0 0.5rem 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-nav hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 1rem 0;
+}
+
+.sidebar-nav .btn-nav {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin: 0.25rem 0;
+    text-align: left;
+    background-color: transparent;
+    color: var(--text-color);
+    font-weight: 500;
+    border: none;
+    border-radius: var(--border-radius);
+    transition: all 0.2s;
+}
+
+.sidebar-nav .btn-nav:hover { background-color: var(--secondary-color); color: var(--primary-dark); }
+.sidebar-nav .btn-nav.active { background-color: var(--primary-color); color: var(--white-color); font-weight: 600; }
+
+.dashboard-content { padding: 1.5rem; }
+
+/* =========================================================
+   KARTU (CARDS) & FORM
+   ========================================================= */
+.card {
+    background: var(--white-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.card-header {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+
+.form-group { margin-bottom: 1.2rem; position: relative; }
+.form-group label { display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem; color: var(--text-light); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+.form-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+.form-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap; }
+
+input, select, textarea {
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-family: var(--font-family);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+textarea { resize: vertical; min-height: 80px;}
+
+/* =========================================================
+   TOMBOL (BUTTONS)
+   ========================================================= */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem 1.2rem;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.btn:active { transform: translateY(0); box-shadow: none; }
+.btn-primary { background-color: var(--primary-color); color: var(--white-color); }
+.btn-primary:hover { background-color: var(--primary-dark); }
+.btn-accent { background-color: var(--accent-color); color: var(--text-color); font-weight: 600;}
+.btn-accent:hover { background-color: var(--accent-dark); color: white;}
+.btn-success { background-color: var(--success-color); color: var(--white-color); }
+.btn-success:hover { background-color: var(--success-dark); }
+.btn-danger { background-color: var(--danger-color); color: var(--white-color); }
+.btn-danger:hover { background-color: var(--danger-dark); }
+.btn-secondary { background-color: #f8f9fa; color: var(--text-color); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background-color: #e9ecef; }
+.btn-info { background-color: #17a2b8; color: white; }
+.btn-block { width: 100%; }
+.btn-sm { padding: 0.35rem 0.75rem; font-size: 0.85rem; }
+
+/* =========================================================
+   TABEL & SUGGESTION
+   ========================================================= */
+.table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem; }
+thead { background-color: #f8f9fa; border-bottom: 2px solid var(--border-color); }
+th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+th { font-weight: 600; color: var(--text-light); white-space: nowrap; }
+tbody tr:hover { background-color: #fcfcfc; }
+
+.suggestions-container {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--white-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    box-shadow: var(--shadow-hover);
+    z-index: 10; max-height: 200px; overflow-y: auto; display: none;
+}
+.suggestion-item { padding: 0.75rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+.suggestion-item:hover { background-color: var(--secondary-color); color: var(--primary-color);}
+
+/* =========================================================
+   UTILITIES (LOADING & STATUS)
+   ========================================================= */
+.status-message {
+    padding: 1rem; margin-bottom: 1.5rem; border-radius: var(--border-radius);
+    display: none; border: 1px solid transparent; text-align: center; font-weight: 500; font-size: 0.95rem;
+}
+.status-message.success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+.status-message.error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+.status-message.info { background-color: #cce5ff; color: #004085; border-color: #b8daff; }
+
+.loading-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex; justify-content: center; align-items: center; z-index: 9999;
+}
+.spinner {
+    border: 4px solid var(--secondary-color); border-top: 4px solid var(--primary-color);
+    border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* =========================================================
+   LOGIN PAGE UTILITIES
+   ========================================================= */
+.login-page-v2 { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+.login-box {
+    width: 100%; max-width: 900px; background: var(--white-color);
+    border-radius: var(--border-radius); box-shadow: var(--shadow-hover);
+    display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; min-height: 500px;
+}
+.login-illustration { background-color: #f4f8ff; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.login-branding h4 { font-size: 1.4rem; color: var(--primary-dark); margin-top: 10px; }
+.login-branding h5 { font-size: 1.1rem; color: var(--primary-color); font-weight: 600; }
+.login-form-container { display: flex; flex-direction: column; justify-content: center; padding: 40px; }
+.password-wrapper { position: relative; }
+.toggle-password-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; }
+
+/* =========================================================
+   RESPONSIVE DESIGN (MOBILE & TABLET)
+   ========================================================= */
+
+/* Tablet & Mobile Menengah */
+@media (max-width: 992px) {
+    /* Merubah sidebar menjadi menu geser horizontal di atas */
+    .dashboard-wrapper { display: flex; flex-direction: column; }
     
-    <!-- Main Stylesheet -->
-    <link rel="stylesheet" href="style.css">
-
-    <!-- Favicon Sekolah -->
-    <link rel="icon" href="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png">
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png">
-    <meta name="apple-mobile-web-app-title" content="Jurnal Guru">
-</head>
-<body>
-    <!-- HEADER BARU YANG RESPONSIVE -->
-    <header>
-        <div class="header-brand">
-            <img src="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png" alt="Logo">
-            <div class="logo">Sistem Jurnal</div>
-        </div>
-        
-        <nav class="header-nav">
-            <span id="welcomeMessage" class="header-welcome">Memuat...</span>
-            <button id="logoutButton" class="btn btn-danger btn-sm">Logout</button>
-        </nav>
-    </header>
-
-    <div class="dashboard-wrapper">
-        <!-- SIDEBAR NAVIGASI (OTOMATIS JADI TAB MENDATAR DI HP) -->
-        <aside class="sidebar-nav">
-            <h4>Menu Utama</h4>
-            <button data-section="jurnalSection" class="btn-nav active">Input Jurnal</button>
-            <button data-section="disiplinSection" class="btn-nav">Catatan Disiplin</button>
-            <button data-section="riwayatJurnalSection" class="btn-nav">Riwayat Jurnal</button>
-            <button data-section="riwayatDisiplinSection" class="btn-nav">Riwayat Disiplin</button>
-            
-            <!-- Menu Admin -->
-            <div class="admin-only" style="display: none;">
-                <hr>
-                <h4>Manajemen Admin</h4>
-                <button data-section="penugasanSection" class="btn-nav">Manajemen Penugasan</button>
-                <button data-section="siswaSection" class="btn-nav">Manajemen Siswa</button>
-                <button data-section="penggunaSection" class="btn-nav">Manajemen Pengguna</button>
-            </div>
-        </aside>
-
-        <!-- KONTEN UTAMA -->
-        <main class="dashboard-content">
-            <!-- Pesan Status & Loading -->
-            <div id="statusMessage" class="status-message"></div>
-            <div id="loadingIndicator" class="loading-overlay" style="display: none;"><div class="spinner"></div></div>
-
-            <!-- 1. SECTION INPUT JURNAL -->
-            <div id="jurnalSection" class="content-section">
-                <div class="card">
-                    <div class="card-header">Input Jurnal Pembelajaran</div>
-                    <form id="formJurnal">
-                        <input type="hidden" id="jurnalIdToUpdate">
-                        <div class="form-grid">
-                            <div class="form-group"><label for="jurnalKelas">Pilih Kelas</label><select id="jurnalKelas" required></select></div>
-                            <div class="form-group"><label for="jurnalMapel">Pilih Mata Pelajaran</label><select id="jurnalMapel" required></select></div>
-                        </div>
-                        <div class="form-group" style="margin-top: 1rem;">
-                            <button type="button" id="loadSiswaForJurnalButton" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Presensi</button>
-                        </div>
-                        <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                        <div class="form-grid">
-                            <div class="form-group"><label for="jurnalTanggal">Tanggal Pembelajaran</label><input type="date" id="jurnalTanggal" required></div>
-                        </div>
-                        <div class="form-group"><label for="jurnalMateri">Materi yang Diajarkan</label><textarea id="jurnalMateri" placeholder="Contoh: Bab 3 - Sistem Reproduksi Manusia" required></textarea></div>
-                        <div class="form-group"><label for="jurnalCatatan">Catatan Tambahan (Opsional)</label><textarea id="jurnalCatatan" placeholder="Contoh: Siswa sangat antusias, perlu pengulangan materi."></textarea></div>
-                        
-                        <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--primary-dark);">Presensi Siswa</h4>
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr><th>NISN</th><th>Nama</th><th>Kehadiran</th></tr>
-                                </thead>
-                                <tbody id="presensiTableBody">
-                                    <tr><td colspan="3" style="text-align: center;">Pilih kelas dan mata pelajaran, lalu klik "Tampilkan Siswa".</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="form-actions"><button type="submit" id="submitJurnalButton" class="btn btn-primary">Simpan Jurnal & Presensi</button></div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- 2. SECTION INPUT DISIPLIN -->
-            <div id="disiplinSection" class="content-section" style="display: none;">
-                <div class="card">
-                    <div class="card-header">Input Catatan Kedisiplinan Siswa</div>
-                    <form id="formDisiplin">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="nisnDisiplinInput">Pencarian Siswa</label>
-                                <input type="text" id="nisnDisiplinInput" name="nisn" placeholder="Ketik NISN atau Nama Siswa..." autocomplete="off" required>
-                                <div id="nisnSuggestions" class="suggestions-container"></div>
-                            </div>
-                            <div class="form-group"><label>Nama Lengkap</label><input type="text" id="namaSiswaDisiplin" disabled placeholder="Otomatis Terisi"></div>
-                        </div>
-                        <div class="form-group"><label for="deskripsiDisiplinInput">Pilih Pelanggaran</label><select id="deskripsiDisiplinInput" name="deskripsi" required></select></div>
-                        <div class="form-actions"><button type="submit" id="submitDisiplinButton" class="btn btn-primary">Simpan Catatan Disiplin</button></div>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- 3. SECTION RIWAYAT JURNAL -->
-            <div id="riwayatJurnalSection" class="content-section" style="display: none;">
-                <div class="card">
-                    <div class="card-header">Filter Riwayat Jurnal</div>
-                    <div id="riwayatFilterForm" class="form-grid">
-                        <div class="form-group"><label for="riwayatFilterKelas">Filter Kelas</label><select id="riwayatFilterKelas"></select></div>
-                        <div class="form-group"><label for="riwayatFilterMapel">Filter Mapel</label><select id="riwayatFilterMapel"></select></div>
-                        <div class="form-group"><label for="riwayatFilterTanggalMulai">Dari Tanggal</label><input type="date" id="riwayatFilterTanggalMulai"></div>
-                        <div class="form-group"><label for="riwayatFilterTanggalSelesai">Sampai Tanggal</label><input type="date" id="riwayatFilterTanggalSelesai"></div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" id="filterRiwayatButton" class="btn btn-primary">Terapkan Filter</button>
-                        <button type="button" id="refreshRiwayatButton" class="btn btn-secondary">Refresh Data</button>
-                        <button type="button" id="exportRiwayatButton" class="btn btn-success" style="display: none;">Export Excel</button>
-                    </div>
-                    
-                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Hasil Pencarian Riwayat</h4>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr><th>Tanggal</th><th>Kelas</th><th>Mata Pelajaran</th><th>Materi</th><th>Catatan</th><th style="text-align:right;">Aksi</th></tr>
-                            </thead>
-                            <tbody id="riwayatJurnalTableBody">
-                                <tr><td colspan="6" style="text-align: center;">Gunakan filter untuk menampilkan riwayat.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. SECTION RIWAYAT DISIPLIN -->
-            <div id="riwayatDisiplinSection" class="content-section" style="display: none;">
-                <div class="card">
-                    <div class="card-header">Filter Riwayat Catatan Disiplin</div>
-                    <div id="riwayatDisiplinFilterForm" class="form-grid">
-                        <div class="form-group"><label for="riwayatDisiplinFilterNisn">Cari NISN</label><input type="text" id="riwayatDisiplinFilterNisn" placeholder="Masukkan NISN siswa..."></div>
-                        <div class="form-group"><label for="riwayatDisiplinFilterTanggalMulai">Dari Tanggal</label><input type="date" id="riwayatDisiplinFilterTanggalMulai"></div>
-                        <div class="form-group"><label for="riwayatDisiplinFilterTanggalSelesai">Sampai Tanggal</label><input type="date" id="riwayatDisiplinFilterTanggalSelesai"></div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" id="filterRiwayatDisiplinButton" class="btn btn-primary">Terapkan Filter</button>
-                        <button type="button" id="refreshRiwayatDisiplinButton" class="btn btn-secondary">Refresh Data</button>
-                    </div>
-                    
-                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Hasil Pencarian Riwayat</h4>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr><th>Tanggal</th><th>NISN</th><th>Nama Siswa</th><th>Pelanggaran</th><th>Poin</th><th>Pencatat</th><th style="text-align:right;">Aksi</th></tr>
-                            </thead>
-                            <tbody id="riwayatDisiplinTableBody">
-                                <tr><td colspan="7" style="text-align: center;">Gunakan filter untuk menampilkan riwayat.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5. SECTION ADMIN: PENUGASAN -->
-            <div id="penugasanSection" class="content-section admin-only" style="display: none;">
-                <div class="card">
-                    <div class="card-header">Manajemen Penugasan Guru</div>
-                    <form id="formPenugasan">
-                        <div class="form-grid">
-                            <div class="form-group"><label for="penugasanGuru">Pilih Guru</label><select id="penugasanGuru" required></select></div>
-                            <div class="form-group"><label for="penugasanKelas">Nama Kelas</label><input type="text" id="penugasanKelas" placeholder="Contoh: X-A" required></div>
-                            <div class="form-group"><label for="penugasanMapel">Mata Pelajaran</label><input type="text" id="penugasanMapel" placeholder="Contoh: Matematika" required></div>
-                        </div>
-                        <div class="form-actions"><button type="submit" class="btn btn-accent">Simpan Tugas</button></div>
-                    </form>
-                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Penugasan Aktif</h4>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>Guru</th><th>Kelas</th><th>Mata Pelajaran</th><th style="text-align:right;">Aksi</th></tr></thead>
-                            <tbody id="penugasanTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6. SECTION ADMIN: SISWA -->
-            <div id="siswaSection" class="content-section admin-only" style="display: none;">
-                 <div class="card">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <span>Manajemen Database Siswa</span>
-                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                            <input type="file" id="importSiswaInput" accept=".csv" style="display: none;">
-                            <button id="importSiswaButton" class="btn btn-sm btn-info">Import CSV</button>
-                            <button id="exportSiswaButton" class="btn btn-sm btn-success">Export Excel</button>
-                            <button id="refreshSiswaButton" class="btn btn-sm btn-secondary">Refresh</button>
-                        </div>
-                    </div>
-                    
-                    <form id="formSiswa">
-                        <input type="hidden" id="formNisnOld">
-                        <div class="form-grid">
-                            <div class="form-group"><label for="formNisn">NISN</label><input type="text" id="formNisn" name="NISN" placeholder="NISN Siswa" required></div>
-                            <div class="form-group"><label for="formNama">Nama Lengkap</label><input type="text" id="formNama" name="Nama" placeholder="Nama Siswa" required></div>
-                            <div class="form-group"><label for="formKelas">Kelas</label><input type="text" id="formKelas" name="Kelas" placeholder="Contoh: X-A" required></div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" id="saveSiswaButton" class="btn btn-accent">Simpan Data</button>
-                            <button type="button" id="resetSiswaButton" class="btn btn-secondary">Batal</button>
-                        </div>
-                    </form>
-                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Siswa Terdaftar</h4>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>NISN</th><th>Nama</th><th>Kelas</th><th style="text-align:right;">Aksi</th></tr></thead>
-                            <tbody id="siswaResultsTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 7. SECTION ADMIN: PENGGUNA -->
-            <div id="penggunaSection" class="content-section admin-only" style="display: none;">
-                <div class="card">
-                    <div class="card-header">Manajemen Pengguna Sistem</div>
-                    <form id="formPengguna">
-                        <input type="hidden" id="formUserIdToUpdate">
-                        <div class="form-grid">
-                            <div class="form-group"><label for="formNamaPengguna">Nama Lengkap</label><input type="text" id="formNamaPengguna" required></div>
-                            <div class="form-group"><label for="formEmailPengguna">Email Login</label><input type="email" id="formEmailPengguna" required></div>
-                            <div class="form-group"><label for="formPasswordPengguna">Password</label><input type="password" id="formPasswordPengguna" placeholder="Minimal 6 karakter" required></div>
-                            <div class="form-group"><label for="formPeran">Hak Akses (Peran)</label><select id="formPeran" required><option value="Guru" selected>Guru</option><option value="Admin">Admin</option></select></div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" id="submitPenggunaButton" class="btn btn-accent">Buat Pengguna</button>
-                            <button type="button" id="resetPenggunaButton" class="btn btn-secondary">Batal</button>
-                        </div>
-                    </form>
-                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Akun Sistem</h4>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr><th>Nama Lengkap</th><th>Email</th><th>Peran</th><th style="text-align:right;">Aksi</th></tr>
-                            </thead>
-                            <tbody id="penggunaTableBody">
-                                <tr><td colspan="4" style="text-align: center;">Memuat daftar pengguna...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
+    .sidebar-nav {
+        display: flex;
+        align-items: center;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 0.5rem;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        /* Muluskan scrolling di HP */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; 
+    }
+    .sidebar-nav::-webkit-scrollbar { display: none; }
     
-    <!-- Script Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    /* Sembunyikan label pemisah agar ringkas */
+    .sidebar-nav h4, .sidebar-nav hr { display: none; }
     
-    <!-- Script Utama Dashboard -->
-    <script src="dashboard.js"></script>
-</body>
-</html>
+    .sidebar-nav .admin-only { display: inline-flex !important; }
+    
+    .sidebar-nav .btn-nav {
+        display: inline-block;
+        width: auto;
+        margin: 0 0.25rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px; /* Bentuk pil agar menyerupai tab */
+        border: 1px solid transparent;
+    }
+    
+    .sidebar-nav .btn-nav:hover { border-color: var(--border-color); }
+    .sidebar-nav .btn-nav.active { border-color: var(--primary-color); }
+}
+
+/* Tampilan Layar HP Spesifik */
+@media (max-width: 768px) {
+    /* Login Page Responsive */
+    .login-box { grid-template-columns: 1fr; max-width: 450px; }
+    .login-illustration { display: none; }
+    .login-form-container { padding: 30px 20px; }
+    
+    /* Header Responsive */
+    header { padding: 0.8rem 1rem; }
+    .header-brand .logo { font-size: 1rem; }
+    .header-welcome { display: none; } /* Sembunyikan pesan selamat datang di HP */
+    
+    .dashboard-content { padding: 1rem; }
+    .card { padding: 1rem; }
+    
+    /* Tombol Aksi Memenuhi Layar */
+    .form-actions { flex-direction: column; }
+    .form-actions .btn { width: 100%; justify-content: center; }
+
+    /* Transformasi Tabel menjadi Card View untuk Mobile */
+    table { display: block; border: none; }
+    thead { display: none; } /* Sembunyikan header tabel */
+    tbody { display: block; width: 100%; }
+    tr {
+        display: block;
+        margin-bottom: 1rem;
+        background: var(--white-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+    td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 0.6rem 0.5rem;
+        font-size: 0.85rem;
+    }
+    td:last-child { border-bottom: none; }
+    
+    /* Memunculkan Label Data Otomatis menggunakan pseudo-element */
+    td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-light);
+        margin-right: 1rem;
+        text-align: left;
+    }
+    
+    /* Menyelaraskan tombol aksi di dalam tabel HP */
+    td[data-label="Aksi"] { justify-content: flex-end; gap: 8px; }
+    td[data-label="Aksi"]::before { display: none; } /* Sembunyikan tulisan 'Aksi' */
+    td[data-label="Aksi"] .btn { flex: 1; text-align: center; }
+}
