@@ -18,12 +18,13 @@ const AppState = {
     filteredJurnalHistory: [],
     allDisiplinHistory: [],
     filteredDisiplinHistory: [],
-    allNilaiHistory: [],       // State Baru untuk Nilai
-    filteredNilaiHistory: []   // State Baru untuk Nilai Terfilter
+    allNilaiHistory: [],       // State untuk Rekap Nilai
+    filteredNilaiHistory: []   // State untuk Rekap Nilai Terfilter
 };
 
 // --- HELPERS ---
 function showLoading(isLoading) { document.getElementById('loadingIndicator').style.display = isLoading ? 'flex' : 'none'; }
+
 function showStatusMessage(message, type = 'info', duration = 4000) {
     const statusEl = document.getElementById('statusMessage');
     statusEl.textContent = message;
@@ -32,6 +33,7 @@ function showStatusMessage(message, type = 'info', duration = 4000) {
     statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (duration > 0) setTimeout(() => { statusEl.style.display = 'none'; }, duration);
 }
+
 function populateDropdown(selectElementId, data, valueField, textField, defaultOptionText) {
     const select = document.getElementById(selectElementId);
     if (!select) return;
@@ -82,24 +84,58 @@ async function loadInitialData() {
     selectDisiplin.innerHTML = '<option value="">-- Pilih Pelanggaran --</option>';
     AppState.violations.forEach(v => selectDisiplin.innerHTML += `<option value="${v.id}">${v.deskripsi} (${v.poin} Poin)</option>`);
 
-    // Populate Data Statis Tahun Ajaran & Semester
-    const currentYear = new Date().getFullYear();
+    // =========================================================================
+    // LOGIKA AUTO-SELECT TAHUN AJARAN DAN SEMESTER BERDASARKAN KALENDER 
+    // =========================================================================
+    const today = new Date();
+    const month = today.getMonth() + 1; // getMonth() mulai dari 0 (Januari)
+    const year = today.getFullYear();
+    let currentTA = '';
+    let currentSemester = '';
+
+    // Penentuan Semester dan Tahun Ajaran Otomatis
+    if (month >= 7) {
+        currentTA = `${year}/${year + 1}`;
+        currentSemester = 'Ganjil';
+    } else {
+        currentTA = `${year - 1}/${year}`;
+        currentSemester = 'Genap';
+    }
+
     const taHTML = `
         <option value="">-- Pilih --</option>
-        <option value="${currentYear-1}/${currentYear}">${currentYear-1}/${currentYear}</option>
-        <option value="${currentYear}/${currentYear+1}">${currentYear}/${currentYear+1}</option>
+        <option value="${year - 1}/${year}">${year - 1}/${year}</option>
+        <option value="${year}/${year + 1}">${year}/${year + 1}</option>
     `;
     const semesterHTML = `<option value="">-- Pilih --</option><option value="Ganjil">Ganjil</option><option value="Genap">Genap</option>`;
 
-    // Form Input Nilai
-    document.getElementById('nilaiFilterTahunAjaran').innerHTML = taHTML;
-    document.getElementById('nilaiFilterSemester').innerHTML = semesterHTML;
+    // --- Terapkan ke Form Input Nilai ---
+    const elemTahunInput = document.getElementById('nilaiFilterTahunAjaran');
+    const elemSmtInput = document.getElementById('nilaiFilterSemester');
+    if (elemTahunInput) {
+        elemTahunInput.innerHTML = taHTML;
+        elemTahunInput.value = currentTA; // Set Otomatis
+    }
+    if (elemSmtInput) {
+        elemSmtInput.innerHTML = semesterHTML;
+        elemSmtInput.value = currentSemester; // Set Otomatis
+    }
+
     populateDropdown('nilaiFilterKelas', AppState.assignments, 'kelas', 'kelas', 'Pilih Kelas');
     populateDropdown('nilaiFilterMataPelajaran', AppState.assignments, 'mata_pelajaran', 'mata_pelajaran', 'Pilih Mata Pelajaran');
 
-    // Form Rekap Nilai
-    document.getElementById('rekapNilaiTA').innerHTML = taHTML;
-    document.getElementById('rekapNilaiSemester').innerHTML = semesterHTML;
+    // --- Terapkan ke Form Rekap Nilai ---
+    const elemTahunRekap = document.getElementById('rekapNilaiTA');
+    const elemSmtRekap = document.getElementById('rekapNilaiSemester');
+    if (elemTahunRekap) {
+        elemTahunRekap.innerHTML = taHTML;
+        elemTahunRekap.value = currentTA; // Set Otomatis
+    }
+    if (elemSmtRekap) {
+        elemSmtRekap.innerHTML = semesterHTML;
+        elemSmtRekap.value = currentSemester; // Set Otomatis
+    }
+
     populateDropdown('rekapNilaiKelas', AppState.assignments, 'kelas', 'kelas', 'Pilih Kelas');
     populateDropdown('rekapNilaiMapel', AppState.assignments, 'mata_pelajaran', 'mata_pelajaran', 'Pilih Mata Pelajaran');
 }
@@ -120,6 +156,7 @@ function handleLoadSiswaNilai(e) {
 
     document.getElementById('areaInputNilai').style.display = 'block';
     tableHead.innerHTML = `<tr><th style="width: 20%;">NISN</th><th style="width: 50%;">Nama Siswa</th><th id="headerNilaiDinamis" style="width: 30%;">Nilai (...)</th></tr>`;
+    
     tableBody.innerHTML = siswaDiKelas.map(siswa => `
         <tr>
             <td data-label="NISN">${siswa.nisn}</td>
@@ -174,7 +211,7 @@ async function handleSimpanSemuaNilai(e) {
     loadRiwayatNilai();
 }
 
-// --- MODUL REKAP NILAI (FITUR BARU) ---
+// --- MODUL REKAP NILAI ---
 async function loadRiwayatNilai() {
     showLoading(true);
     const { data, error } = await supabaseClient
@@ -242,7 +279,6 @@ function exportRiwayatNilai() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataToExport), "Rekap Nilai");
     XLSX.writeFile(wb, `Rekap_Nilai_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
-
 
 // --- MODUL JURNAL (TETAP) ---
 async function loadSiswaForJurnal() {
@@ -312,7 +348,6 @@ async function handleJurnalSubmit(event) {
     document.getElementById('presensiTableBody').innerHTML = `<tr><td colspan="3" style="text-align: center;">Pilih kelas dan mapel, lalu klik "Tampilkan Siswa".</td></tr>`;
 }
 
-
 // --- MODUL DISIPLIN (TETAP) ---
 function setupSiswaSearch() {
     const searchInput = document.getElementById('nisnDisiplinInput');
@@ -346,21 +381,23 @@ async function handleDisiplinSubmit(event) {
         id_pelanggaran: document.getElementById('deskripsiDisiplinInput').value,
         pencatat_id: AppState.user.id
     };
+    
     showLoading(true);
     const { error } = await supabaseClient.from('catatan_disiplin').insert(disiplinData);
     showLoading(false);
+    
     if (error) return showStatusMessage(`Gagal menyimpan: ${error.message}`, 'error');
     showStatusMessage('Catatan disiplin berhasil disimpan!', 'success');
     event.target.reset();
     document.getElementById('namaSiswaDisiplin').value = '';
 }
 
-
 // --- RIWAYAT LAINNYA (TETAP) ---
 async function loadRiwayatJurnal() {
     showLoading(true);
     const { data, error } = await supabaseClient.from('jurnal_pelajaran').select('*').eq('guru_id', AppState.user.id).order('tanggal', { ascending: false });
     showLoading(false);
+    
     if (error) return showStatusMessage('Gagal memuat data riwayat.', 'error');
     AppState.allJurnalHistory = data;
     AppState.filteredJurnalHistory = data;
@@ -372,10 +409,12 @@ async function loadRiwayatJurnal() {
 function renderRiwayatJurnalTable() {
     const tableBody = document.getElementById('riwayatJurnalTableBody');
     document.getElementById('exportRiwayatButton').style.display = AppState.filteredJurnalHistory.length > 0 ? 'inline-block' : 'none';
+    
     if (AppState.filteredJurnalHistory.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Tidak ada riwayat ditemukan.</td></tr>';
         return;
     }
+    
     tableBody.innerHTML = AppState.filteredJurnalHistory.map(j => `
         <tr>
             <td data-label="Tanggal">${new Date(j.tanggal).toLocaleDateString('id-ID')}</td>
@@ -390,6 +429,7 @@ async function loadRiwayatDisiplin() {
     showLoading(true);
     const { data, error } = await supabaseClient.from('catatan_disiplin').select(`id, created_at, siswa (nisn, nama), pelanggaran_master (deskripsi, poin), profiles (full_name)`).order('created_at', { ascending: false });
     showLoading(false);
+    
     if (error) return showStatusMessage('Gagal memuat data riwayat disiplin.', 'error');
     AppState.allDisiplinHistory = data;
     AppState.filteredDisiplinHistory = data;
@@ -402,6 +442,7 @@ function renderRiwayatDisiplinTable() {
         tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada riwayat ditemukan.</td></tr>';
         return;
     }
+    
     tableBody.innerHTML = AppState.filteredDisiplinHistory.map(d => `
         <tr>
             <td data-label="Tanggal">${new Date(d.created_at).toLocaleDateString('id-ID')}</td>
@@ -418,9 +459,13 @@ function applyJurnalFilter() {
     const fMapel = document.getElementById('riwayatFilterMapel').value;
     const fMulai = document.getElementById('riwayatFilterTanggalMulai').value;
     const fSelesai = document.getElementById('riwayatFilterTanggalSelesai').value;
+    
     AppState.filteredJurnalHistory = AppState.allJurnalHistory.filter(j => {
         const tgl = new Date(j.tanggal);
-        return (!fKelas || j.kelas === fKelas) && (!fMapel || j.mata_pelajaran === fMapel) && (!fMulai || tgl >= new Date(fMulai)) && (!fSelesai || tgl <= new Date(fSelesai));
+        return (!fKelas || j.kelas === fKelas) && 
+               (!fMapel || j.mata_pelajaran === fMapel) && 
+               (!fMulai || tgl >= new Date(fMulai)) && 
+               (!fSelesai || tgl <= new Date(fSelesai));
     });
     renderRiwayatJurnalTable();
 }
@@ -429,10 +474,13 @@ function applyDisiplinFilter() {
     const fNisn = document.getElementById('riwayatDisiplinFilterNisn').value.toLowerCase();
     const fMulai = document.getElementById('riwayatDisiplinFilterTanggalMulai').value;
     const fSelesai = document.getElementById('riwayatDisiplinFilterTanggalSelesai').value;
+    
     AppState.filteredDisiplinHistory = AppState.allDisiplinHistory.filter(d => {
         const tgl = new Date(d.created_at);
         const s = d.siswa || {};
-        return (!fNisn || (s.nisn || '').includes(fNisn) || (s.nama || '').toLowerCase().includes(fNisn)) && (!fMulai || tgl >= new Date(fMulai)) && (!fSelesai || tgl <= new Date(fSelesai));
+        return (!fNisn || (s.nisn || '').includes(fNisn) || (s.nama || '').toLowerCase().includes(fNisn)) && 
+               (!fMulai || tgl >= new Date(fMulai)) && 
+               (!fSelesai || tgl <= new Date(fSelesai));
     });
     renderRiwayatDisiplinTable();
 }
