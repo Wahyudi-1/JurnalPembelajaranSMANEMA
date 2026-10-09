@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- Meta Viewport Penting untuk Responsivitas Mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard - Sistem Jurnal & Disiplin SMANEMA</title>
+    <title>Dashboard Admin - Sistem Jurnal & Disiplin SMANEMA</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -47,8 +47,10 @@
                 <hr>
                 <h4>Manajemen Admin</h4>
                 <button data-section="penugasanSection" class="btn-nav">Manajemen Penugasan</button>
+                <button data-section="waliKelasSection" class="btn-nav">Manajemen Wali Kelas</button>
                 <button data-section="siswaSection" class="btn-nav">Manajemen Siswa</button>
                 <button data-section="penggunaSection" class="btn-nav">Manajemen Pengguna</button>
+                <button data-section="pengaturanSection" class="btn-nav">Pengaturan Sistem</button>
             </div>
         </aside>
 
@@ -176,7 +178,7 @@
             <!-- 5. SECTION ADMIN: PENUGASAN -->
             <div id="penugasanSection" class="content-section admin-only" style="display: none;">
                 <div class="card">
-                    <div class="card-header">Manajemen Penugasan Guru</div>
+                    <div class="card-header">Manajemen Penugasan Guru (Mata Pelajaran)</div>
                     <form id="formPenugasan">
                         <div class="form-grid">
                             <div class="form-group"><label for="penugasanGuru">Pilih Guru</label><select id="penugasanGuru" required></select></div>
@@ -196,7 +198,29 @@
                 </div>
             </div>
 
-            <!-- 6. SECTION ADMIN: SISWA -->
+            <!-- 6. SECTION ADMIN: WALI KELAS -->
+            <div id="waliKelasSection" class="content-section admin-only" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Manajemen Wali Kelas</div>
+                    <form id="formWaliKelas">
+                        <div class="form-grid">
+                            <div class="form-group"><label>Pilih Guru / Wali Kelas</label><select id="waliKelasGuru" required></select></div>
+                            <div class="form-group"><label>Nama Kelas</label><input type="text" id="waliKelasNama" placeholder="Contoh: X-A" required></div>
+                        </div>
+                        <div class="form-actions"><button type="submit" class="btn btn-accent">Simpan Wali Kelas</button></div>
+                    </form>
+                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Wali Kelas Aktif</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Nama Wali Kelas</th><th>Kelas yang Diampu</th><th style="text-align:right;">Aksi</th></tr></thead>
+                            <tbody id="waliKelasTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. SECTION ADMIN: SISWA -->
             <div id="siswaSection" class="content-section admin-only" style="display: none;">
                  <div class="card">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -232,7 +256,7 @@
                 </div>
             </div>
             
-            <!-- 7. SECTION ADMIN: PENGGUNA -->
+            <!-- 8. SECTION ADMIN: PENGGUNA -->
             <div id="penggunaSection" class="content-section admin-only" style="display: none;">
                 <div class="card">
                     <div class="card-header">Manajemen Pengguna Sistem</div>
@@ -242,7 +266,16 @@
                             <div class="form-group"><label for="formNamaPengguna">Nama Lengkap</label><input type="text" id="formNamaPengguna" required></div>
                             <div class="form-group"><label for="formEmailPengguna">Email Login</label><input type="email" id="formEmailPengguna" required></div>
                             <div class="form-group"><label for="formPasswordPengguna">Password</label><input type="password" id="formPasswordPengguna" placeholder="Minimal 6 karakter" required></div>
-                            <div class="form-group"><label for="formPeran">Hak Akses (Peran)</label><select id="formPeran" required><option value="Kepala Sekolah" selected>Kepala Sekolah</option><option value="Guru" selected>Guru</option><option value="Admin">Admin</option></select></div>
+                            <div class="form-group">
+                                <label for="formPeran">Hak Akses (Peran)</label>
+                                <select id="formPeran" required>
+                                    <option value="Guru" selected>Guru</option>
+                                    <option value="Wali Kelas">Wali Kelas</option>
+                                    <option value="Siswa">Siswa</option>
+                                    <option value="Kepala Sekolah">Kepala Sekolah</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-actions">
                             <button type="submit" id="submitPenggunaButton" class="btn btn-accent">Buat Pengguna</button>
@@ -263,6 +296,24 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 9. SECTION ADMIN: PENGATURAN SISTEM -->
+            <div id="pengaturanSection" class="content-section admin-only" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Pengaturan Sistem Dasar</div>
+                    <form id="formPengaturan">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Nomor WhatsApp Guru Piket</label>
+                                <input type="number" id="pengaturanWaPiket" placeholder="Contoh: 628123456789" required>
+                                <span style="font-size:0.8rem; color:gray; display:block; margin-top:5px;">*Awali dengan kode negara (62) tanpa tanda +. Nomor ini digunakan untuk fitur tombol lapor kelas kosong pada panel siswa.</span>
+                            </div>
+                        </div>
+                        <div class="form-actions"><button type="submit" class="btn btn-primary">Simpan Pengaturan</button></div>
+                    </form>
+                </div>
+            </div>
+            
         </main>
     </div>
     
