@@ -50,7 +50,7 @@
                 <button data-section="waliKelasSection" class="btn-nav">Manajemen Wali Kelas</button>
                 <button data-section="siswaSection" class="btn-nav">Manajemen Siswa</button>
                 <button data-section="penggunaSection" class="btn-nav">Manajemen Pengguna</button>
-                <button data-section="pengaturanSection" class="btn-nav">Pengaturan Sistem</button>
+                <button data-section="piketSection" class="btn-nav">Jadwal Guru Piket</button>
             </div>
         </aside>
 
@@ -268,6 +268,7 @@
                             <div class="form-group"><label for="formPasswordPengguna">Password</label><input type="password" id="formPasswordPengguna" placeholder="Minimal 6 karakter" required></div>
                             <div class="form-group">
                                 <label for="formPeran">Hak Akses (Peran)</label>
+                                <!-- DROPDOWN PERAN YANG TELAH DIPERBAIKI -->
                                 <select id="formPeran" required>
                                     <option value="Guru" selected>Guru</option>
                                     <option value="Wali Kelas">Wali Kelas</option>
@@ -297,23 +298,44 @@
                 </div>
             </div>
 
-            <!-- 9. SECTION ADMIN: PENGATURAN SISTEM -->
-            <div id="pengaturanSection" class="content-section admin-only" style="display: none;">
+            <!-- 9. SECTION ADMIN: JADWAL GURU PIKET -->
+            <div id="piketSection" class="content-section admin-only" style="display: none;">
                 <div class="card">
-                    <div class="card-header">Pengaturan Sistem Dasar</div>
-                    <form id="formPengaturan">
+                    <div class="card-header">Jadwal Guru Piket Harian</div>
+                    <form id="formPiket">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Nomor WhatsApp Guru Piket</label>
-                                <input type="number" id="pengaturanWaPiket" placeholder="Contoh: 628123456789" required>
-                                <span style="font-size:0.8rem; color:gray; display:block; margin-top:5px;">*Awali dengan kode negara (62) tanpa tanda +. Nomor ini digunakan untuk fitur tombol lapor kelas kosong pada panel siswa.</span>
+                                <label>Nama Guru Piket</label>
+                                <input type="text" id="piketNamaGuru" placeholder="Contoh: Bapak Budi, S.Pd" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Nomor WhatsApp</label>
+                                <input type="number" id="piketNoWa" placeholder="Contoh: 628123456789" required>
+                                <span style="font-size:0.75rem; color:gray; display:block; margin-top:3px;">Awali dengan 62 (Kode Negara).</span>
+                            </div>
+                            <div class="form-group">
+                                <label>Hari Bertugas</label>
+                                <select id="piketHari" required>
+                                    <option value="">-- Pilih Hari --</option>
+                                    <option value="Senin">Senin</option><option value="Selasa">Selasa</option>
+                                    <option value="Rabu">Rabu</option><option value="Kamis">Kamis</option>
+                                    <option value="Jumat">Jumat</option><option value="Sabtu">Sabtu</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="form-actions"><button type="submit" class="btn btn-primary">Simpan Pengaturan</button></div>
+                        <div class="form-actions"><button type="submit" class="btn btn-primary">Tambah Jadwal Piket</button></div>
                     </form>
+                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Jadwal Piket Aktif</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Hari</th><th>Nama Guru Piket</th><th>Nomor WhatsApp</th><th style="text-align:right;">Aksi</th></tr></thead>
+                            <tbody id="piketTableBody"><tr><td colspan="4" style="text-align:center;">Memuat jadwal...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-            
+
         </main>
     </div>
     
