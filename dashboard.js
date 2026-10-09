@@ -2,7 +2,7 @@
  * =================================================================
  * SCRIPT UTAMA DASHBOARD ADMIN - SISTEM JURNAL & DISIPLIN SMANEMA
  * =================================================================
- * @version 7.0 - Final Fix: Aman membuat akun + Fitur Wali Kelas & Piket Dinamis
+ * @version 7.1 - Ditambahkan Fitur Unduh Template CSV Siswa
  */
 
 // ====================================================================
@@ -12,7 +12,6 @@
 const SUPABASE_URL = 'https://pbfhvyqhshuvyakjfpka.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZmh2eXFoc2h1dnlha2pmcGthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTY1NTksImV4cCI6MjEwNjk5MjU1OX0.RMDKCmkniLHoCgxsFr0noBlbB4DoqH1CTZc4lRtnPNg';
 
-// Cek Library
 if (typeof window.supabase === 'undefined') {
     alert("Error: Library Supabase tidak terdeteksi. Pastikan internet lancar atau CDN tidak memblokir.");
 }
@@ -28,8 +27,8 @@ const AppState = {
     violations: [],
     teachers: [],
     allAssignments: [],
-    allWaliKelas: [],        // State baru untuk Wali Kelas
-    allPiket: [],            // State baru untuk Jadwal Piket
+    allWaliKelas: [],        
+    allPiket: [],            
     allJurnalHistory: [],
     filteredJurnalHistory: [],
     allDisiplinHistory: [],
@@ -699,7 +698,6 @@ async function handlePenggunaSubmit(event) {
     showLoading(true);
 
     if (userIdToUpdate) {
-        // Logika UPDATE Menggunakan RPC tetap aman
         if (password && password.length < 6) {
             showLoading(false);
             return showStatusMessage('Password baru minimal 6 karakter.', 'error');
@@ -717,13 +715,11 @@ async function handlePenggunaSubmit(event) {
         if (error) return showStatusMessage(`Gagal update pengguna: ${error.message}`, 'error');
         showStatusMessage('Data pengguna berhasil diperbarui.', 'success');
     } else {
-        // Logika CREATE: Menggunakan trik native signUp tanpa logout Admin
         if (!password || password.length < 6) {
             showLoading(false);
             return showStatusMessage('Password wajib diisi minimal 6 karakter.', 'error');
         }
 
-        // Trik Jitu: Buat koneksi sementara khusus daftar akun yang tidak menimpa sesi Admin
         const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: { 
                 persistSession: false, 
@@ -735,10 +731,7 @@ async function handlePenggunaSubmit(event) {
             email: email,
             password: password,
             options: {
-                data: {
-                    full_name: nama,
-                    role: role
-                }
+                data: { full_name: nama, role: role }
             }
         });
 
@@ -835,7 +828,29 @@ function resetPenggunaForm() {
     document.getElementById('submitPenggunaButton').textContent = 'Buat Pengguna Baru';
 }
 
-// --- Modul Admin: Siswa (CRUD & Import/Export) ---
+// --- Modul Admin: Siswa (CRUD, Download Template & Import/Export) ---
+
+// FUNGSI BARU: UNDUH TEMPLATE CSV
+function downloadTemplateSiswa() {
+    // Membuat isi file CSV dengan header yang benar dan contoh data pengisian
+    const csvContent = "NISN,Nama,Kelas\n1234567890,Fulan Bin Fulan,X-A\n0987654321,Siti Aminah,XI-B";
+    
+    // Konversi string text menjadi file blob
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    // Atur atribut dan trigger klik download
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Template_Import_Siswa.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showStatusMessage('Template CSV berhasil diunduh.', 'success');
+}
+
 async function refreshSiswaData() {
     showLoading(true);
     const { data: updatedSiswa, error } = await supabaseClient.from('siswa').select('nisn, nama, kelas').order('nama');
@@ -1015,6 +1030,10 @@ function setupDashboardListeners() {
     
     document.getElementById('refreshSiswaButton')?.addEventListener('click', refreshSiswaData);
     document.getElementById('exportSiswaButton')?.addEventListener('click', exportSiswaToExcel);
+    
+    // Listener Tombol Template Siswa
+    document.getElementById('downloadTemplateSiswaButton')?.addEventListener('click', downloadTemplateSiswa);
+    
     document.getElementById('importSiswaButton')?.addEventListener('click', () => document.getElementById('importSiswaInput').click());
     document.getElementById('importSiswaInput')?.addEventListener('change', handleSiswaImport);
     
