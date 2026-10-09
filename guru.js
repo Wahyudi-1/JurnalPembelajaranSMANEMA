@@ -1,6 +1,6 @@
 /**
  * =================================================================
- * SCRIPT KHUSUS PANEL GURU - SISTEM JURNAL & DISIPLIN (FULL FEATURES)
+ * SCRIPT KHUSUS PANEL GURU - SISTEM JURNAL & DISIPLIN
  * =================================================================
  */
 
@@ -18,13 +18,12 @@ const AppState = {
     filteredJurnalHistory: [],
     allDisiplinHistory: [],
     filteredDisiplinHistory: [],
-    allNilaiHistory: [],       // State untuk Rekap Nilai
-    filteredNilaiHistory: []   // State untuk Rekap Nilai Terfilter
+    allNilaiHistory: [],
+    filteredNilaiHistory: []
 };
 
 // --- HELPERS ---
 function showLoading(isLoading) { document.getElementById('loadingIndicator').style.display = isLoading ? 'flex' : 'none'; }
-
 function showStatusMessage(message, type = 'info', duration = 4000) {
     const statusEl = document.getElementById('statusMessage');
     statusEl.textContent = message;
@@ -33,7 +32,6 @@ function showStatusMessage(message, type = 'info', duration = 4000) {
     statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (duration > 0) setTimeout(() => { statusEl.style.display = 'none'; }, duration);
 }
-
 function populateDropdown(selectElementId, data, valueField, textField, defaultOptionText) {
     const select = document.getElementById(selectElementId);
     if (!select) return;
@@ -75,25 +73,20 @@ async function loadInitialData() {
     if (violations.data) AppState.violations = violations.data;
     showLoading(false);
 
-    // Populate Dropdown Jurnal
     populateDropdown('jurnalKelas', AppState.assignments, 'kelas', 'kelas', 'Pilih Kelas');
     populateDropdown('jurnalMapel', AppState.assignments, 'mata_pelajaran', 'mata_pelajaran', 'Pilih Mata Pelajaran');
     
-    // Populate Dropdown Disiplin
     const selectDisiplin = document.getElementById('deskripsiDisiplinInput');
     selectDisiplin.innerHTML = '<option value="">-- Pilih Pelanggaran --</option>';
     AppState.violations.forEach(v => selectDisiplin.innerHTML += `<option value="${v.id}">${v.deskripsi} (${v.poin} Poin)</option>`);
 
-    // =========================================================================
-    // LOGIKA AUTO-SELECT TAHUN AJARAN DAN SEMESTER BERDASARKAN KALENDER 
-    // =========================================================================
+    // LOGIKA AUTO-SELECT TAHUN AJARAN DAN SEMESTER BERDASARKAN KALENDER
     const today = new Date();
-    const month = today.getMonth() + 1; // getMonth() mulai dari 0 (Januari)
+    const month = today.getMonth() + 1;
     const year = today.getFullYear();
     let currentTA = '';
     let currentSemester = '';
 
-    // Penentuan Semester dan Tahun Ajaran Otomatis
     if (month >= 7) {
         currentTA = `${year}/${year + 1}`;
         currentSemester = 'Ganjil';
@@ -109,33 +102,19 @@ async function loadInitialData() {
     `;
     const semesterHTML = `<option value="">-- Pilih --</option><option value="Ganjil">Ganjil</option><option value="Genap">Genap</option>`;
 
-    // --- Terapkan ke Form Input Nilai ---
+    // Form Input Nilai
     const elemTahunInput = document.getElementById('nilaiFilterTahunAjaran');
     const elemSmtInput = document.getElementById('nilaiFilterSemester');
-    if (elemTahunInput) {
-        elemTahunInput.innerHTML = taHTML;
-        elemTahunInput.value = currentTA; // Set Otomatis
-    }
-    if (elemSmtInput) {
-        elemSmtInput.innerHTML = semesterHTML;
-        elemSmtInput.value = currentSemester; // Set Otomatis
-    }
-
+    if (elemTahunInput) { elemTahunInput.innerHTML = taHTML; elemTahunInput.value = currentTA; }
+    if (elemSmtInput) { elemSmtInput.innerHTML = semesterHTML; elemSmtInput.value = currentSemester; }
     populateDropdown('nilaiFilterKelas', AppState.assignments, 'kelas', 'kelas', 'Pilih Kelas');
     populateDropdown('nilaiFilterMataPelajaran', AppState.assignments, 'mata_pelajaran', 'mata_pelajaran', 'Pilih Mata Pelajaran');
 
-    // --- Terapkan ke Form Rekap Nilai ---
+    // Form Rekap Nilai
     const elemTahunRekap = document.getElementById('rekapNilaiTA');
     const elemSmtRekap = document.getElementById('rekapNilaiSemester');
-    if (elemTahunRekap) {
-        elemTahunRekap.innerHTML = taHTML;
-        elemTahunRekap.value = currentTA; // Set Otomatis
-    }
-    if (elemSmtRekap) {
-        elemSmtRekap.innerHTML = semesterHTML;
-        elemSmtRekap.value = currentSemester; // Set Otomatis
-    }
-
+    if (elemTahunRekap) { elemTahunRekap.innerHTML = taHTML; elemTahunRekap.value = currentTA; }
+    if (elemSmtRekap) { elemSmtRekap.innerHTML = semesterHTML; elemSmtRekap.value = currentSemester; }
     populateDropdown('rekapNilaiKelas', AppState.assignments, 'kelas', 'kelas', 'Pilih Kelas');
     populateDropdown('rekapNilaiMapel', AppState.assignments, 'mata_pelajaran', 'mata_pelajaran', 'Pilih Mata Pelajaran');
 }
@@ -207,11 +186,10 @@ async function handleSimpanSemuaNilai(e) {
     document.getElementById('areaInputNilai').style.display = 'none';
     document.getElementById('headerNilaiDinamis').textContent = 'Nilai (...)';
     
-    // Auto refresh data rekap nilai jika sudah ter-load
     loadRiwayatNilai();
 }
 
-// --- MODUL REKAP NILAI ---
+// --- MODUL REKAP & KONVERSI NILAI ---
 async function loadRiwayatNilai() {
     showLoading(true);
     const { data, error } = await supabaseClient
@@ -230,20 +208,22 @@ async function loadRiwayatNilai() {
 
 function renderRiwayatNilaiTable() {
     const tableBody = document.getElementById('riwayatNilaiTableBody');
-    document.getElementById('exportRiwayatNilaiButton').style.display = AppState.filteredNilaiHistory.length > 0 ? 'inline-block' : 'none';
+    const areaKonversi = document.getElementById('areaKonversiExport');
 
     if (AppState.filteredNilaiHistory.length === 0) {
+        areaKonversi.style.display = 'none';
         tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada data nilai ditemukan sesuai filter.</td></tr>';
         return;
     }
 
+    areaKonversi.style.display = 'block'; // Memunculkan form konversi
     tableBody.innerHTML = AppState.filteredNilaiHistory.map(n => `
         <tr>
             <td data-label="Tahun / Smt">${n.tahun_ajaran} (${n.semester})</td>
             <td data-label="NISN">${n.siswa?.nisn || '-'}</td>
             <td data-label="Nama Siswa">${n.siswa?.nama || '-'}</td>
             <td data-label="Penilaian">${n.jenis_penilaian}</td>
-            <td data-label="Nilai" style="font-weight:bold; color:var(--primary-dark);">${n.nilai}</td>
+            <td data-label="Nilai Asli" style="font-weight:bold; color:var(--primary-dark);">${n.nilai}</td>
         </tr>
     `).join('');
 }
@@ -263,21 +243,37 @@ function applyNilaiFilter() {
     renderRiwayatNilaiTable();
 }
 
-function exportRiwayatNilai() {
+function exportRiwayatNilaiKonversi() {
     if (AppState.filteredNilaiHistory.length === 0) return;
-    const dataToExport = AppState.filteredNilaiHistory.map(n => ({
-        'Tahun Ajaran': n.tahun_ajaran,
-        Semester: n.semester,
-        Kelas: n.kelas,
-        'Mata Pelajaran': n.mata_pelajaran,
-        'Jenis Penilaian': n.jenis_penilaian,
-        NISN: n.siswa?.nisn,
-        'Nama Siswa': n.siswa?.nama,
-        Nilai: n.nilai
-    }));
+    
+    const minTarget = parseFloat(document.getElementById('konversiMin').value) || 0;
+    const maxTarget = parseFloat(document.getElementById('konversiMax').value) || 100;
+
+    const dataToExport = AppState.filteredNilaiHistory.map(n => {
+        const nilaiAsli = parseFloat(n.nilai) || 0;
+        
+        // Logika Matematika Konversi: ((Nilai / 100) * (Max - Min)) + Min
+        let nilaiKonversi = ((nilaiAsli / 100) * (maxTarget - minTarget)) + minTarget;
+        
+        // Pembulatan ke 2 angka desimal agar rapi di Excel
+        nilaiKonversi = Math.round(nilaiKonversi * 100) / 100;
+
+        return {
+            'Tahun Ajaran': n.tahun_ajaran,
+            'Semester': n.semester,
+            'Kelas': n.kelas,
+            'Mata Pelajaran': n.mata_pelajaran,
+            'Jenis Penilaian': n.jenis_penilaian,
+            'NISN': n.siswa?.nisn,
+            'Nama Siswa': n.siswa?.nama,
+            'Nilai Asli': nilaiAsli,
+            'Nilai Hasil Konversi': nilaiKonversi
+        };
+    });
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataToExport), "Rekap Nilai");
-    XLSX.writeFile(wb, `Rekap_Nilai_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `Rekap_Nilai_Konversi_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 // --- MODUL JURNAL (TETAP) ---
@@ -392,7 +388,7 @@ async function handleDisiplinSubmit(event) {
     document.getElementById('namaSiswaDisiplin').value = '';
 }
 
-// --- RIWAYAT LAINNYA (TETAP) ---
+// --- RIWAYAT JURNAL & DISIPLIN (TETAP) ---
 async function loadRiwayatJurnal() {
     showLoading(true);
     const { data, error } = await supabaseClient.from('jurnal_pelajaran').select('*').eq('guru_id', AppState.user.id).order('tanggal', { ascending: false });
@@ -511,7 +507,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('.sidebar-nav .btn-nav').forEach(btn => btn.classList.remove('active'));
             e.currentTarget.classList.add('active');
 
-            // Trigger Fetch Data berdasarkan Tab yang dibuka
             if (sectionId === 'riwayatJurnalSection') loadRiwayatJurnal();
             if (sectionId === 'riwayatDisiplinSection') loadRiwayatDisiplin();
             if (sectionId === 'riwayatNilaiSection') loadRiwayatNilai();
@@ -544,5 +539,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('filterRiwayatNilaiButton').addEventListener('click', applyNilaiFilter);
     document.getElementById('refreshRiwayatNilaiButton').addEventListener('click', loadRiwayatNilai);
-    document.getElementById('exportRiwayatNilaiButton').addEventListener('click', exportRiwayatNilai);
+    
+    // Listener Tombol Export Nilai Konversi
+    document.getElementById('exportRiwayatNilaiButton').addEventListener('click', exportRiwayatNilaiKonversi);
 });
