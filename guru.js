@@ -1,6 +1,6 @@
 /**
  * =================================================================
- * SCRIPT KHUSUS PANEL GURU - SISTEM JURNAL & DISIPLIN
+ * SCRIPT KHUSUS PANEL GURU - SISTEM JURNAL & DISIPLIN (WITH NILAI)
  * =================================================================
  */
 
@@ -21,10 +21,7 @@ const AppState = {
 };
 
 // --- HELPERS ---
-function showLoading(isLoading) {
-    document.getElementById('loadingIndicator').style.display = isLoading ? 'flex' : 'none';
-}
-
+function showLoading(isLoading) { document.getElementById('loadingIndicator').style.display = isLoading ? 'flex' : 'none'; }
 function showStatusMessage(message, type = 'info', duration = 4000) {
     const statusEl = document.getElementById('statusMessage');
     statusEl.textContent = message;
@@ -33,7 +30,6 @@ function showStatusMessage(message, type = 'info', duration = 4000) {
     statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (duration > 0) setTimeout(() => { statusEl.style.display = 'none'; }, duration);
 }
-
 function populateDropdown(selectElementId, data, valueField, textField, defaultOptionText) {
     const select = document.getElementById(selectElementId);
     if (!select) return;
@@ -75,18 +71,126 @@ async function loadInitialData() {
     if (violations.data) AppState.violations = violations.data;
     showLoading(false);
 
+    // Dropdown Jurnal
     populateDropdown('jurnalKelas', AppState.assignments, 'kelas', 'kelas', 'Pilih Kelas');
     populateDropdown('jurnalMapel', AppState.assignments, 'mata_pelajaran', 'mata_pelajaran', 'Pilih Mata Pelajaran');
     
-    // Custom populate for Disiplin to show Poin
+    // Dropdown Disiplin
     const selectDisiplin = document.getElementById('deskripsiDisiplinInput');
     selectDisiplin.innerHTML = '<option value="">-- Pilih Pelanggaran --</option>';
-    AppState.violations.forEach(v => {
-        selectDisiplin.innerHTML += `<option value="${v.id}">${v.deskripsi} (${v.poin} Poin)</option>`;
-    });
+    AppState.violations.forEach(v => selectDisiplin.innerHTML += `<option value="${v.id}">${v.deskripsi} (${v.poin} Poin)</option>`);
+
+    // Dropdown Fitur Baru (Nilai)
+    const currentYear = new Date().getFullYear();
+    document.getElementById('nilaiFilterTahunAjaran').innerHTML = `
+        <option value="">-- Pilih --</option>
+        <option value="${currentYear-1}/${currentYear}">${currentYear-1}/${currentYear}</option>
+        <option value="${currentYear}/${currentYear+1}">${currentYear}/${currentYear+1}</option>
+    `;
+    document.getElementById('nilaiFilterSemester').innerHTML = `
+        <option value="">-- Pilih --</option><option value="Ganjil">Ganjil</option><option value="Genap">Genap</option>
+    `;
+    populateDropdown('nilaiFilterKelas', AppState.assignments, 'kelas', 'kelas', 'Pilih Kelas');
+    populateDropdown('nilaiFilterMataPelajaran', AppState.assignments, 'mata_pelajaran', 'mata_pelajaran', 'Pilih Mata Pelajaran');
 }
 
-// --- MODUL JURNAL ---
+// --- MODUL NILAI SISWA (FITUR BARU) ---
+function handleLoadSiswaNilai(e) {
+    e.preventDefault(); // Mencegah reload halaman
+    
+    const kelas = document.getElementById('nilaiFilterKelas').value;
+    const tableBody = document.getElementById('nilaiTableBody');
+    const tableHead = document.getElementById('nilaiTableHead');
+    
+    const siswaDiKelas = AppState.students.filter(s => s.kelas === kelas);
+    
+    if (siswaDiKelas.length === 0) {
+        showStatusMessage(`Tidak ada data siswa ditemukan untuk kelas ${kelas}.`, 'error');
+        document.getElementById('areaInputNilai').style.display = 'none';
+        return;
+    }
+
+    // Munculkan area input dan tabel
+    document.getElementById('areaInputNilai').style.display = 'block';
+    
+    // Generate Header (Nilai (...))
+    tableHead.innerHTML = `
+        <tr>
+            <th style="width: 20%;">NISN</th>
+            <th style="width: 50%;">Nama Siswa</th>
+            <th id="headerNilaiDinamis" style="width: 30%;">Nilai (...)</th>
+        </tr>
+    `;
+
+    // Generate Baris Siswa dengan Input Form 0-100
+    tableBody.innerHTML = siswaDiKelas.map(siswa => `
+        <tr>
+            <td data-label="NISN">${siswa.nisn}</td>
+            <td data-label="Nama Siswa" style="font-weight: 500;">${siswa.nama}</td>
+            <td data-label="Nilai">
+                <input type="number" class="input-nilai-siswa" data-nisn="${siswa.nisn}" min="0" max="100" placeholder="0-100" style="padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; width: 100px;">
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Event untuk merubah tulisan Header "Nilai (...)" secara Realtime
+document.getElementById('jenisNilai')?.addEventListener('input', (e) => {
+    const header = document.getElementById('headerNilaiDinamis');
+    if (header) {
+        header.textContent = e.target.value ? `Nilai (${e.target.value})` : 'Nilai (...)';
+    }
+});
+
+async function handleSimpanSemuaNilai(e) {
+    e.preventDefault();
+    
+    const ta = document.getElementById('nilaiFilterTahunAjaran').value;
+    const semester = document.getElementById('nilaiFilterSemester').value;
+    const kelas = document.getElementById('nilaiFilterKelas').value;
+    const mapel = document.getElementById('nilaiFilterMataPelajaran').value;
+    const jenisNilai = document.getElementById('jenisNilai').value;
+    
+    const inputs = document.querySelectorAll('.input-nilai-siswa');
+    const dataInsert = [];
+
+    // Kumpulkan semua input nilai yang tidak kosong
+    inputs.forEach(input => {
+        if (input.value !== '') {
+            dataInsert.push({
+                guru_id: AppState.user.id,
+                tahun_ajaran: ta,
+                semester: semester,
+                kelas: kelas,
+                mata_pelajaran: mapel,
+                jenis_penilaian: jenisNilai,
+                nisn_siswa: input.dataset.nisn,
+                nilai: parseFloat(input.value)
+            });
+        }
+    });
+
+    if (dataInsert.length === 0) return showStatusMessage('Belum ada nilai siswa yang diisi (minimal isi 1 siswa).', 'error');
+
+    showLoading(true);
+    const { error } = await supabaseClient.from('nilai_siswa').insert(dataInsert);
+    showLoading(false);
+
+    if (error) {
+        // Deteksi jika nilai untuk ulangan tersebut sudah pernah disimpan
+        if (error.code === '23505') {
+            return showStatusMessage('Data gagal disimpan. Jenis penilaian ini sudah pernah dimasukkan untuk kelas tersebut.', 'error');
+        }
+        return showStatusMessage(`Gagal menyimpan nilai: ${error.message}`, 'error');
+    }
+
+    showStatusMessage('Semua nilai berhasil disimpan ke database!', 'success');
+    document.getElementById('formInputNilai').reset();
+    document.getElementById('areaInputNilai').style.display = 'none';
+    document.getElementById('headerNilaiDinamis').textContent = 'Nilai (...)';
+}
+
+// --- MODUL JURNAL (TETAP) ---
 async function loadSiswaForJurnal() {
     const kelas = document.getElementById('jurnalKelas').value;
     const mapel = document.getElementById('jurnalMapel').value;
@@ -141,9 +245,7 @@ async function handleJurnalSubmit(event) {
         }
     });
 
-    if (siswaTidakHadir.length > 0) {
-        jurnalData.catatan += `\n\n--- PRESENSI TIDAK HADIR ---\n${siswaTidakHadir.join('\n')}`;
-    }
+    if (siswaTidakHadir.length > 0) jurnalData.catatan += `\n\n--- PRESENSI TIDAK HADIR ---\n${siswaTidakHadir.join('\n')}`;
 
     showLoading(true);
     const { error } = await supabaseClient.from('jurnal_pelajaran').insert(jurnalData);
@@ -156,7 +258,7 @@ async function handleJurnalSubmit(event) {
     document.getElementById('presensiTableBody').innerHTML = `<tr><td colspan="3" style="text-align: center;">Pilih kelas dan mapel, lalu klik "Tampilkan Siswa".</td></tr>`;
 }
 
-// --- MODUL DISIPLIN ---
+// --- MODUL DISIPLIN (TETAP) ---
 function setupSiswaSearch() {
     const searchInput = document.getElementById('nisnDisiplinInput');
     const suggestionsContainer = document.getElementById('nisnSuggestions');
@@ -200,7 +302,7 @@ async function handleDisiplinSubmit(event) {
     document.getElementById('namaSiswaDisiplin').value = '';
 }
 
-// --- RIWAYAT DATA ---
+// --- RIWAYAT DATA (TETAP) ---
 async function loadRiwayatJurnal() {
     showLoading(true);
     const { data, error } = await supabaseClient.from('jurnal_pelajaran').select('*').eq('guru_id', AppState.user.id).order('tanggal', { ascending: false });
@@ -218,12 +320,10 @@ async function loadRiwayatJurnal() {
 function renderRiwayatJurnalTable() {
     const tableBody = document.getElementById('riwayatJurnalTableBody');
     document.getElementById('exportRiwayatButton').style.display = AppState.filteredJurnalHistory.length > 0 ? 'inline-block' : 'none';
-
     if (AppState.filteredJurnalHistory.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Tidak ada riwayat ditemukan.</td></tr>';
         return;
     }
-
     tableBody.innerHTML = AppState.filteredJurnalHistory.map(j => `
         <tr>
             <td data-label="Tanggal">${new Date(j.tanggal).toLocaleDateString('id-ID')}</td>
@@ -241,7 +341,6 @@ async function loadRiwayatDisiplin() {
     showLoading(true);
     const { data, error } = await supabaseClient.from('catatan_disiplin').select(`id, created_at, siswa (nisn, nama), pelanggaran_master (deskripsi, poin), profiles (full_name)`).order('created_at', { ascending: false });
     showLoading(false);
-
     if (error) return showStatusMessage('Gagal memuat data riwayat disiplin.', 'error');
     AppState.allDisiplinHistory = data;
     AppState.filteredDisiplinHistory = data;
@@ -254,7 +353,6 @@ function renderRiwayatDisiplinTable() {
         tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Tidak ada riwayat ditemukan.</td></tr>';
         return;
     }
-
     tableBody.innerHTML = AppState.filteredDisiplinHistory.map(d => `
         <tr>
             <td data-label="Tanggal">${new Date(d.created_at).toLocaleDateString('id-ID')}</td>
@@ -266,19 +364,14 @@ function renderRiwayatDisiplinTable() {
     `).join('');
 }
 
-// --- FILTERING & EVENT LISTENER ---
 function applyJurnalFilter() {
     const fKelas = document.getElementById('riwayatFilterKelas').value;
     const fMapel = document.getElementById('riwayatFilterMapel').value;
     const fMulai = document.getElementById('riwayatFilterTanggalMulai').value;
     const fSelesai = document.getElementById('riwayatFilterTanggalSelesai').value;
-
     AppState.filteredJurnalHistory = AppState.allJurnalHistory.filter(j => {
         const tgl = new Date(j.tanggal);
-        return (!fKelas || j.kelas === fKelas) && 
-               (!fMapel || j.mata_pelajaran === fMapel) && 
-               (!fMulai || tgl >= new Date(fMulai)) && 
-               (!fSelesai || tgl <= new Date(fSelesai));
+        return (!fKelas || j.kelas === fKelas) && (!fMapel || j.mata_pelajaran === fMapel) && (!fMulai || tgl >= new Date(fMulai)) && (!fSelesai || tgl <= new Date(fSelesai));
     });
     renderRiwayatJurnalTable();
 }
@@ -287,13 +380,10 @@ function applyDisiplinFilter() {
     const fNisn = document.getElementById('riwayatDisiplinFilterNisn').value.toLowerCase();
     const fMulai = document.getElementById('riwayatDisiplinFilterTanggalMulai').value;
     const fSelesai = document.getElementById('riwayatDisiplinFilterTanggalSelesai').value;
-
     AppState.filteredDisiplinHistory = AppState.allDisiplinHistory.filter(d => {
         const tgl = new Date(d.created_at);
         const s = d.siswa || {};
-        return (!fNisn || (s.nisn || '').includes(fNisn) || (s.nama || '').toLowerCase().includes(fNisn)) && 
-               (!fMulai || tgl >= new Date(fMulai)) && 
-               (!fSelesai || tgl <= new Date(fSelesai));
+        return (!fNisn || (s.nisn || '').includes(fNisn) || (s.nama || '').toLowerCase().includes(fNisn)) && (!fMulai || tgl >= new Date(fMulai)) && (!fSelesai || tgl <= new Date(fSelesai));
     });
     renderRiwayatDisiplinTable();
 }
@@ -301,8 +391,7 @@ function applyDisiplinFilter() {
 function exportRiwayatJurnal() {
     if (AppState.filteredJurnalHistory.length === 0) return;
     const dataToExport = AppState.filteredJurnalHistory.map(j => ({
-        Tanggal: new Date(j.tanggal).toLocaleDateString('id-ID'),
-        Kelas: j.kelas, 'Mata Pelajaran': j.mata_pelajaran, Materi: j.materi, Catatan: j.catatan
+        Tanggal: new Date(j.tanggal).toLocaleDateString('id-ID'), Kelas: j.kelas, 'Mata Pelajaran': j.mata_pelajaran, Materi: j.materi, Catatan: j.catatan
     }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataToExport), "Riwayat Jurnal");
@@ -310,7 +399,7 @@ function exportRiwayatJurnal() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    if (!document.querySelector('.dashboard-wrapper')) return; // Pastikan kita ada di file guru.html
+    if (!document.querySelector('.dashboard-wrapper')) return; 
     
     await initSession();
     await loadInitialData();
@@ -330,10 +419,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('logoutButton').addEventListener('click', handleLogout);
+    
+    // Listeners Form Jurnal & Disiplin
     document.getElementById('formJurnal').addEventListener('submit', handleJurnalSubmit);
     document.getElementById('formDisiplin').addEventListener('submit', handleDisiplinSubmit);
     document.getElementById('loadSiswaForJurnalButton').addEventListener('click', loadSiswaForJurnal);
     
+    // Listeners Form Nilai Baru
+    document.getElementById('formFilterNilai').addEventListener('submit', handleLoadSiswaNilai);
+    document.getElementById('formInputNilai').addEventListener('submit', handleSimpanSemuaNilai);
+
+    // Listeners Filter Jurnal & Disiplin
     document.getElementById('filterRiwayatButton').addEventListener('click', applyJurnalFilter);
     document.getElementById('refreshRiwayatButton').addEventListener('click', loadRiwayatJurnal);
     document.getElementById('exportRiwayatButton').addEventListener('click', exportRiwayatJurnal);
