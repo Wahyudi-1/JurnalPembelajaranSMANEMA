@@ -24,10 +24,11 @@
         <aside class="sidebar-nav">
             <h4>Menu Utama</h4>
             <button data-section="jurnalSection" class="btn-nav active">Input Jurnal</button>
-            <!-- TOMBOL MENU BARU: INPUT NILAI -->
             <button data-section="nilaiSection" class="btn-nav">Input Nilai</button>
             <button data-section="disiplinSection" class="btn-nav">Catatan Disiplin</button>
             <button data-section="riwayatJurnalSection" class="btn-nav">Riwayat Jurnal</button>
+            <!-- TOMBOL MENU BARU: REKAP NILAI -->
+            <button data-section="riwayatNilaiSection" class="btn-nav">Rekap Nilai</button>
             <button data-section="riwayatDisiplinSection" class="btn-nav">Riwayat Disiplin</button>
         </aside>
 
@@ -37,7 +38,6 @@
 
             <!-- 1. SECTION INPUT JURNAL -->
             <div id="jurnalSection" class="content-section">
-                <!-- (Isi form jurnal tetap sama seperti sebelumnya) -->
                 <div class="card">
                     <div class="card-header">Input Jurnal Pembelajaran</div>
                     <form id="formJurnal">
@@ -65,12 +65,10 @@
                 </div>
             </div>
 
-            <!-- 2. SECTION INPUT NILAI (FITUR BARU) -->
+            <!-- 2. SECTION INPUT NILAI -->
             <div id="nilaiSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Input Nilai Siswa</div>
-                    
-                    <!-- Form Filter untuk Mencari Siswa -->
                     <form id="formFilterNilai">
                         <div class="form-grid">
                             <div class="form-group"><label for="nilaiFilterTahunAjaran">Tahun Ajaran</label><select id="nilaiFilterTahunAjaran" required></select></div>
@@ -78,35 +76,23 @@
                             <div class="form-group"><label for="nilaiFilterKelas">Kelas</label><select id="nilaiFilterKelas" required></select></div>
                             <div class="form-group"><label for="nilaiFilterMataPelajaran">Mata Pelajaran</label><select id="nilaiFilterMataPelajaran" required></select></div>
                         </div>
-                        <div class="form-group" style="margin-top: 1.5rem;">
-                            <button type="submit" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Penilaian</button>
-                        </div>
+                        <div class="form-group" style="margin-top: 1.5rem;"><button type="submit" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Penilaian</button></div>
                     </form>
-
                     <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
-
-                    <!-- Area Input Nilai Aktual (Disembunyikan sampai siswa dimuat) -->
                     <div id="areaInputNilai" style="display: none;">
                         <form id="formInputNilai">
                             <div class="form-group">
                                 <label for="jenisNilai">Jenis Penilaian (Contoh: Ulangan Harian 1, Tugas 2, PTS, PAS)</label>
                                 <input type="text" id="jenisNilai" placeholder="Ketik jenis penilaian di sini..." required autocomplete="off">
                             </div>
-
                             <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--primary-dark);">Daftar Nilai Siswa</h4>
                             <div class="table-container">
                                 <table>
-                                    <thead id="nilaiTableHead">
-                                        <!-- Header digenerate dari JS -->
-                                    </thead>
-                                    <tbody id="nilaiTableBody">
-                                        <!-- Baris siswa digenerate dari JS -->
-                                    </tbody>
+                                    <thead id="nilaiTableHead"></thead>
+                                    <tbody id="nilaiTableBody"></tbody>
                                 </table>
                             </div>
-                            <div class="form-group" style="margin-top: 2rem;">
-                                <button type="submit" id="submitNilaiButton" class="btn btn-primary btn-block">Simpan Semua Nilai</button>
-                            </div>
+                            <div class="form-group" style="margin-top: 2rem;"><button type="submit" id="submitNilaiButton" class="btn btn-primary btn-block">Simpan Semua Nilai</button></div>
                         </form>
                     </div>
                 </div>
@@ -131,7 +117,7 @@
                 </div>
             </div>
             
-            <!-- 4. SECTION RIWAYAT JURNAL (Tetap) -->
+            <!-- 4. SECTION RIWAYAT JURNAL -->
             <div id="riwayatJurnalSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Riwayat Jurnal Mengajar Anda</div>
@@ -156,7 +142,32 @@
                 </div>
             </div>
 
-            <!-- 5. SECTION RIWAYAT DISIPLIN (Tetap) -->
+            <!-- 5. SECTION REKAP NILAI (MENU BARU) -->
+            <div id="riwayatNilaiSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Riwayat & Rekap Nilai Siswa</div>
+                    <div id="riwayatNilaiFilterForm" class="form-grid">
+                        <div class="form-group"><label>Tahun Ajaran</label><select id="rekapNilaiTA"></select></div>
+                        <div class="form-group"><label>Semester</label><select id="rekapNilaiSemester"></select></div>
+                        <div class="form-group"><label>Kelas</label><select id="rekapNilaiKelas"></select></div>
+                        <div class="form-group"><label>Mata Pelajaran</label><select id="rekapNilaiMapel"></select></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="filterRiwayatNilaiButton" class="btn btn-primary">Tampilkan Nilai</button>
+                        <button type="button" id="refreshRiwayatNilaiButton" class="btn btn-secondary">Refresh</button>
+                        <button type="button" id="exportRiwayatNilaiButton" class="btn btn-success" style="display: none;">Export Excel</button>
+                    </div>
+                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Tahun Ajaran</th><th>NISN</th><th>Nama Siswa</th><th>Jenis Penilaian</th><th>Nilai</th></tr></thead>
+                            <tbody id="riwayatNilaiTableBody"><tr><td colspan="5" style="text-align: center;">Gunakan filter untuk menampilkan data nilai.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. SECTION RIWAYAT DISIPLIN -->
             <div id="riwayatDisiplinSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Riwayat Catatan Disiplin Siswa</div>
