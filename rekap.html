@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rekapitulasi Jurnal & Disiplin - Kepala Sekolah</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-brand">
+            <img src="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png" alt="Logo">
+            <div class="logo">Panel Kepala Sekolah</div>
+        </div>
+        <nav class="header-nav">
+            <span id="welcomeMessage" class="header-welcome">Memuat...</span>
+            <button id="logoutButton" class="btn btn-danger btn-sm">Logout</button>
+        </nav>
+    </header>
+
+    <div class="dashboard-wrapper">
+        <aside class="sidebar-nav">
+            <button data-section="rekapJurnalSection" class="btn-nav active">Rekap Jurnal Guru</button>
+            <button data-section="rekapDisiplinSection" class="btn-nav">Rekap Disiplin Siswa</button>
+        </aside>
+
+        <main class="dashboard-content">
+            <div id="statusMessage" class="status-message"></div>
+            <div id="loadingIndicator" class="loading-overlay" style="display: none;"><div class="spinner"></div></div>
+
+            <!-- SECTION REKAP JURNAL -->
+            <div id="rekapJurnalSection" class="content-section">
+                <div class="card">
+                    <div class="card-header">Rekapitulasi Jurnal Mengajar Guru</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Filter Guru</label><select id="filterGuruJurnal"></select></div>
+                        <div class="form-group"><label>Dari Tanggal</label><input type="date" id="filterMulaiJurnal"></div>
+                        <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="filterSelesaiJurnal"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button id="btnFilterJurnal" class="btn btn-primary">Terapkan Filter</button>
+                        <button id="btnExportJurnal" class="btn btn-success" style="display: none;">Export Excel</button>
+                    </div>
+                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Tanggal</th><th>Nama Guru</th><th>Kelas</th><th>Mata Pelajaran</th><th>Materi & Catatan</th></tr></thead>
+                            <tbody id="tableBodyJurnal"><tr><td colspan="5" style="text-align: center;">Memuat data...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION REKAP DISIPLIN -->
+            <div id="rekapDisiplinSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Rekapitulasi Pelanggaran Disiplin Siswa</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Cari NISN / Nama Siswa</label><input type="text" id="filterSiswaDisiplin" placeholder="Ketik NISN atau Nama..."></div>
+                        <div class="form-group"><label>Dari Tanggal</label><input type="date" id="filterMulaiDisiplin"></div>
+                        <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="filterSelesaiDisiplin"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button id="btnFilterDisiplin" class="btn btn-primary">Terapkan Filter</button>
+                        <button id="btnExportDisiplin" class="btn btn-success" style="display: none;">Export Excel</button>
+                    </div>
+                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Tanggal</th><th>NISN</th><th>Nama Siswa</th><th>Pelanggaran (Poin)</th><th>Pencatat</th></tr></thead>
+                            <tbody id="tableBodyDisiplin"><tr><td colspan="5" style="text-align: center;">Memuat data...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="rekap.js"></script>
+</body>
+</html>
