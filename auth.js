@@ -64,13 +64,11 @@ async function routeUser(userId) {
     }
 
     // Arahkan ke halaman masing-masing sesuai hak akses
-    if (profile.role === 'Kepala Sekolah') {
-        window.location.replace('rekap.html');
-    } else if (profile.role === 'Guru') {
-        window.location.replace('guru.html');
-    } else {
-        window.location.replace('dashboard.html'); // Default ke Panel Admin
-    }
+    if (profile.role === 'Kepala Sekolah') window.location.replace('rekap.html');
+    else if (profile.role === 'Wali Kelas') window.location.replace('walikelas.html');
+    else if (profile.role === 'Guru') window.location.replace('guru.html');
+    else if (profile.role === 'Siswa') window.location.replace('siswa.html');
+    else window.location.replace('dashboard.html'); // Admin
 }
 
 
