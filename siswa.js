@@ -9,12 +9,8 @@ const SUPABASE_URL = 'https://pbfhvyqhshuvyakjfpka.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZmh2eXFoc2h1dnlha2pmcGthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTY1NTksImV4cCI6MjEwNjk5MjU1OX0.RMDKCmkniLHoCgxsFr0noBlbB4DoqH1CTZc4lRtnPNg';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// =================================================================
-// PENGATURAN NOMOR WHATSAPP GURU PIKET
-// Awali dengan 62 (Tanpa angka 0 di depan, tanpa tanda +)
-// Contoh: Jika nomornya 08123456789, tulis 628123456789
-// =================================================================
-const NOMOR_WA_PIKET = '6281234567890'; // <-- UBAH NOMOR INI OLEH ADMIN
+// Variabel Nomor WhatsApp Guru Piket (Nilai awal, akan ditimpa otomatis dari database)
+let nomorWaPiket = '6281234567890'; 
 
 const AppState = {
     user: null,
@@ -38,6 +34,12 @@ async function initSession() {
         if (profileData.role !== 'Siswa') return window.location.replace('index.html');
         AppState.profile = profileData;
         document.getElementById('welcomeMessage').textContent = `Halo, Siswa SMANEMA`;
+    }
+
+    // TARIK NOMOR WA PIKET DARI DATABASE (Tabel Pengaturan)
+    const { data: pengaturan } = await supabaseClient.from('pengaturan').select('nilai').eq('kunci', 'nomor_wa_piket').single();
+    if (pengaturan && pengaturan.nilai) {
+        nomorWaPiket = pengaturan.nilai;
     }
 }
 
@@ -74,7 +76,7 @@ function handleLaporWA(e) {
         return;
     }
 
-    // Format Pesan Persis Seperti Permintaan Anda
+    // Format Pesan
     const pesanAwal = `Assalamu'alaikum
 Mohon izin menyampaikan bahwa *${guru}* untuk mata pelajaran *${mapel}* masih belum hadir di kelas *${kelas}* pada periode pelajaran *${jam}*.
 
@@ -85,8 +87,8 @@ Terima kasih`;
     // Encode string agar menjadi format URL (mengubah spasi menjadi %20, enter menjadi %0A)
     const pesanEncoded = encodeURIComponent(pesanAwal);
     
-    // Buka Tab Baru menuju API WhatsApp
-    const urlWhatsapp = `https://wa.me/${NOMOR_WA_PIKET}?text=${pesanEncoded}`;
+    // Buka Tab Baru menuju API WhatsApp menggunakan nomor dinamis dari database
+    const urlWhatsapp = `https://wa.me/${nomorWaPiket}?text=${pesanEncoded}`;
     window.open(urlWhatsapp, '_blank');
     
     // Reset Form
