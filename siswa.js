@@ -9,9 +9,6 @@ const SUPABASE_URL = 'https://pbfhvyqhshuvyakjfpka.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZmh2eXFoc2h1dnlha2pmcGthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTY1NTksImV4cCI6MjEwNjk5MjU1OX0.RMDKCmkniLHoCgxsFr0noBlbB4DoqH1CTZc4lRtnPNg';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Variabel Nomor WhatsApp Guru Piket (Nilai awal, akan ditimpa otomatis dari database)
-let nomorWaPiket = '6281234567890'; 
-
 const AppState = {
     user: null,
     profile: null,
@@ -35,12 +32,6 @@ async function initSession() {
         AppState.profile = profileData;
         document.getElementById('welcomeMessage').textContent = `Halo, Siswa SMANEMA`;
     }
-
-    // TARIK NOMOR WA PIKET DARI DATABASE (Tabel Pengaturan)
-    const { data: pengaturan } = await supabaseClient.from('pengaturan').select('nilai').eq('kunci', 'nomor_wa_piket').single();
-    if (pengaturan && pengaturan.nilai) {
-        nomorWaPiket = pengaturan.nilai;
-    }
 }
 
 async function loadDaftarKelas() {
@@ -61,6 +52,33 @@ async function loadDaftarKelas() {
     }
 }
 
+// --- LOGIKA MENDETEKSI GURU PIKET HARI INI ---
+async function loadGuruPiketHariIni() {
+    const namaHariInt = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const hariIni = namaHariInt[new Date().getDay()]; // Mendapatkan hari ini dalam Bahasa Indonesia
+    
+    const targetSelect = document.getElementById('laporTargetPiket');
+    const btnKirim = document.getElementById('btnKirimPesan');
+    
+    if (!targetSelect || !btnKirim) return; // Mencegah error jika elemen HTML belum siap
+
+    showLoading(true);
+    // Mencari jadwal piket dari database khusus untuk hari ini
+    const { data, error } = await supabaseClient.from('jadwal_piket').select('*').eq('hari', hariIni);
+    showLoading(false);
+
+    if (data && data.length > 0) {
+        targetSelect.innerHTML = `<option value="">-- Pilih Guru Piket (${hariIni}) --</option>` + 
+            data.map(p => `<option value="${p.nomor_wa}">${p.nama_guru}</option>`).join('');
+        btnKirim.disabled = false;
+        targetSelect.disabled = false;
+    } else {
+        targetSelect.innerHTML = `<option value="">Belum ada guru piket dijadwalkan untuk hari ${hariIni}</option>`;
+        targetSelect.disabled = true;
+        btnKirim.disabled = true; // Matikan tombol jika tidak ada guru
+    }
+}
+
 // --- FITUR LAPOR WHATSAPP GURU KOSONG ---
 function handleLaporWA(e) {
     e.preventDefault();
@@ -69,10 +87,11 @@ function handleLaporWA(e) {
     const mapel = document.getElementById('laporMapel').value;
     const guru = document.getElementById('laporGuru').value;
     const jam = document.getElementById('laporJam').value;
+    const nomorWaTujuan = document.getElementById('laporTargetPiket').value; // Mengambil nomor dari pilihan dropdown
 
-    // Cek kelengkapan
-    if (!kelas || !mapel || !guru || !jam) {
-        alert("Harap lengkapi semua isian sebelum mengirim laporan.");
+    // Cek kelengkapan form
+    if (!kelas || !mapel || !guru || !jam || !nomorWaTujuan) {
+        alert("Harap lengkapi semua isian dan pilih guru piket sebelum mengirim laporan.");
         return;
     }
 
@@ -84,14 +103,14 @@ Mohon bantuan untuk diberikan arahan tindakan yang harus kelas kami lakukan di p
 
 Terima kasih`;
 
-    // Encode string agar menjadi format URL (mengubah spasi menjadi %20, enter menjadi %0A)
+    // Encode string agar menjadi format URL
     const pesanEncoded = encodeURIComponent(pesanAwal);
     
-    // Buka Tab Baru menuju API WhatsApp menggunakan nomor dinamis dari database
-    const urlWhatsapp = `https://wa.me/${nomorWaPiket}?text=${pesanEncoded}`;
+    // Buka Tab Baru menuju API WhatsApp menggunakan nomor yang dipilih siswa
+    const urlWhatsapp = `https://wa.me/${nomorWaTujuan}?text=${pesanEncoded}`;
     window.open(urlWhatsapp, '_blank');
     
-    // Reset Form
+    // Reset Form setelah mengirim
     e.target.reset();
 }
 
@@ -155,6 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     await initSession();
     await loadDaftarKelas();
+    await loadGuruPiketHariIni(); // Menjalankan pengecekan piket harian
 
     // Navigasi Tab / Sidebar
     document.querySelectorAll('.sidebar-nav .btn-nav').forEach(button => {
