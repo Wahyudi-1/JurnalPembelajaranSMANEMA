@@ -27,7 +27,6 @@
             <button data-section="nilaiSection" class="btn-nav">Input Nilai</button>
             <button data-section="disiplinSection" class="btn-nav">Catatan Disiplin</button>
             <button data-section="riwayatJurnalSection" class="btn-nav">Riwayat Jurnal</button>
-            <!-- TOMBOL MENU BARU: REKAP NILAI -->
             <button data-section="riwayatNilaiSection" class="btn-nav">Rekap Nilai</button>
             <button data-section="riwayatDisiplinSection" class="btn-nav">Riwayat Disiplin</button>
         </aside>
@@ -142,7 +141,7 @@
                 </div>
             </div>
 
-            <!-- 5. SECTION REKAP NILAI (MENU BARU) -->
+            <!-- 5. SECTION REKAP NILAI (DIPERBARUI) -->
             <div id="riwayatNilaiSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Riwayat & Rekap Nilai Siswa</div>
@@ -155,12 +154,33 @@
                     <div class="form-actions">
                         <button type="button" id="filterRiwayatNilaiButton" class="btn btn-primary">Tampilkan Nilai</button>
                         <button type="button" id="refreshRiwayatNilaiButton" class="btn btn-secondary">Refresh</button>
-                        <button type="button" id="exportRiwayatNilaiButton" class="btn btn-success" style="display: none;">Export Excel</button>
                     </div>
+
+                    <!-- AREA KONVERSI & EXPORT (MUNCUL OTOMATIS) -->
+                    <div id="areaKonversiExport" style="display: none; background-color: #f8f9fa; padding: 1.5rem; border-radius: var(--border-radius); margin-top: 1.5rem; border: 1px solid var(--border-color);">
+                        <h4 style="margin-bottom: 1rem; color: var(--primary-dark);">Konversi & Export Excel</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="konversiMin">Nilai Minimum Target (Contoh: KKM 75)</label>
+                                <input type="number" id="konversiMin" value="75" min="0" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label for="konversiMax">Nilai Maksimum Target</label>
+                                <input type="number" id="konversiMax" value="100" min="0" max="100">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: flex-end;">
+                                <button type="button" id="exportRiwayatNilaiButton" class="btn btn-success btn-block">Export Excel (Dikonversi)</button>
+                            </div>
+                        </div>
+                        <span style="font-size: 0.8rem; color: var(--text-light); margin-top: 0.5rem; display: block;">
+                            *Rumus Konversi: ((Nilai Asli / 100) × (Maksimum - Minimum)) + Minimum
+                        </span>
+                    </div>
+
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Tahun Ajaran</th><th>NISN</th><th>Nama Siswa</th><th>Jenis Penilaian</th><th>Nilai</th></tr></thead>
+                            <thead><tr><th>Tahun / Smt</th><th>NISN</th><th>Nama Siswa</th><th>Jenis Penilaian</th><th>Nilai Asli</th></tr></thead>
                             <tbody id="riwayatNilaiTableBody"><tr><td colspan="5" style="text-align: center;">Gunakan filter untuk menampilkan data nilai.</td></tr></tbody>
                         </table>
                     </div>
