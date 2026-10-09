@@ -6,6 +6,16 @@
     <title>Rekapitulasi Jurnal & Disiplin - Kepala Sekolah</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- CHART.JS LIBRARY UTK GRAFIK -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container { position: relative; width: 100%; height: 350px; margin-top: 1.5rem; }
+        .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+        .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--primary-color); color: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        .stat-card h3 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .stat-card p { font-size: 0.9rem; opacity: 0.9; }
+    </style>
 </head>
 <body>
     <header>
@@ -21,18 +31,129 @@
 
     <div class="dashboard-wrapper">
         <aside class="sidebar-nav">
-            <button data-section="rekapJurnalSection" class="btn-nav active">Rekap Jurnal Guru</button>
-            <button data-section="rekapDisiplinSection" class="btn-nav">Rekap Disiplin Siswa</button>
+            <h4>Dashboard Analitik</h4>
+            <button data-section="dashboardUmumSection" class="btn-nav active">Overview Global</button>
+            <button data-section="analisisGuruSection" class="btn-nav">Kinerja & Aktivitas Guru</button>
+            <button data-section="analisisKelasSection" class="btn-nav">Aktivitas Pembelajaran Kelas</button>
+            <button data-section="analisisKehadiranSection" class="btn-nav">Rekap Kehadiran Siswa</button>
+            <hr>
+            <h4>Data Tabel Arsip</h4>
+            <button data-section="rekapJurnalSection" class="btn-nav">Arsip Jurnal Mengajar</button>
+            <button data-section="rekapDisiplinSection" class="btn-nav">Arsip Disiplin Siswa</button>
         </aside>
 
         <main class="dashboard-content">
             <div id="statusMessage" class="status-message"></div>
             <div id="loadingIndicator" class="loading-overlay" style="display: none;"><div class="spinner"></div></div>
 
-            <!-- SECTION REKAP JURNAL -->
-            <div id="rekapJurnalSection" class="content-section">
+            <!-- ============================================== -->
+            <!-- 1. SECTION OVERVIEW GLOBAL (DASHBOARD)         -->
+            <!-- ============================================== -->
+            <div id="dashboardUmumSection" class="content-section">
                 <div class="card">
-                    <div class="card-header">Rekapitulasi Jurnal Mengajar Guru</div>
+                    <div class="card-header">Overview Global Pembelajaran Sekolah</div>
+                    <div class="stat-cards">
+                        <div class="stat-card"><h3 id="statTotalJurnal">0</h3><p>Total Jurnal Bulan Ini</p></div>
+                        <div class="stat-card"><h3 id="statTotalDisiplin">0</h3><p>Catatan Disiplin Bulan Ini</p></div>
+                        <div class="stat-card"><h3 id="statKehadiran">0%</h3><p>Rata-Rata Kehadiran Bulan Ini</p></div>
+                    </div>
+                    
+                    <div class="chart-grid">
+                        <div style="background:#f8f9fa; padding:1.5rem; border-radius:8px; border:1px solid #ddd;">
+                            <h4 style="text-align:center;">Tren Jurnal Sekolah (7 Hari Terakhir)</h4>
+                            <div class="chart-container"><canvas id="chartTrenGlobal"></canvas></div>
+                        </div>
+                        <div style="background:#f8f9fa; padding:1.5rem; border-radius:8px; border:1px solid #ddd;">
+                            <h4 style="text-align:center;">Persentase Pelanggaran Disiplin</h4>
+                            <div class="chart-container"><canvas id="chartDisiplinGlobal"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 2. SECTION ANALISIS KINERJA GURU               -->
+            <!-- ============================================== -->
+            <div id="analisisGuruSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Pantau Progres & Aktivitas Guru</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Pilih Guru</label><select id="chartGuruSelect"><option value="ALL">-- Seluruh Guru (Global) --</option></select></div>
+                        <div class="form-group"><label>Rentang Waktu</label><select id="chartGuruTimeframe"><option value="harian">Harian (7 Hari Terakhir)</option><option value="mingguan">Mingguan (4 Pekan Terakhir)</option><option value="bulanan" selected>Bulanan (1 Tahun Terakhir)</option></select></div>
+                    </div>
+                    <hr style="margin: 1.5rem 0;">
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="chartAktivitasGuru"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 3. SECTION ANALISIS KELAS                      -->
+            <!-- ============================================== -->
+            <div id="analisisKelasSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Aktivitas Pembelajaran per Kelas</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Pilih Kelas</label><select id="chartKelasSelect"><option value="ALL">-- Seluruh Kelas (Perbandingan) --</option></select></div>
+                        <div class="form-group"><label>Rentang Waktu</label><select id="chartKelasTimeframe"><option value="harian">Harian (7 Hari Terakhir)</option><option value="mingguan">Mingguan (4 Pekan Terakhir)</option><option value="bulanan" selected>Bulanan (1 Tahun Terakhir)</option></select></div>
+                    </div>
+                    <hr style="margin: 1.5rem 0;">
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="chartAktivitasKelas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 4. SECTION REKAP KEHADIRAN (GRAFIK & TABEL)    -->
+            <!-- ============================================== -->
+            <div id="analisisKehadiranSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Rekap Daftar Hadir Siswa</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Tampilkan Berdasarkan</label>
+                            <select id="hadirFilterType">
+                                <option value="global">Secara Global (Satu Sekolah)</option>
+                                <option value="angkatan">Per Angkatan (Kelas X, XI, XII)</option>
+                                <option value="kelas">Spesifik Satu Kelas</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="hadirTargetContainer" style="display:none;">
+                            <label>Pilih Kelas/Angkatan</label>
+                            <select id="hadirTargetSelect"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Bulan Kehadiran</label>
+                            <input type="month" id="hadirBulanInput" required>
+                        </div>
+                    </div>
+                    <div class="form-actions"><button id="btnGenerateHadir" class="btn btn-primary">Analisis Kehadiran</button></div>
+                    
+                    <hr style="margin: 1.5rem 0;">
+                    <div class="chart-grid">
+                        <div style="background:#fff; padding:1rem;">
+                            <h4 style="text-align:center; color:var(--primary-dark);">Rasio Kehadiran</h4>
+                            <div class="chart-container"><canvas id="chartPieHadir"></canvas></div>
+                        </div>
+                        <div style="background:#fff; padding:1rem; overflow-y:auto; max-height:400px;">
+                            <h4 style="text-align:center; color:var(--primary-dark);">Siswa Paling Sering Absen (Top 10)</h4>
+                            <table style="margin-top:1rem;">
+                                <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Total Absen</th></tr></thead>
+                                <tbody id="tbodyTopAbsen"><tr><td colspan="3" style="text-align:center;">Pilih filter untuk melihat data.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 5. SECTION ARSIP TABEL (LAMA TAPI DIPERTAHANKAN) -->
+            <!-- ============================================== -->
+            <div id="rekapJurnalSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Arsip Tabel Jurnal Mengajar Guru</div>
                     <div class="form-grid">
                         <div class="form-group"><label>Filter Guru</label><select id="filterGuruJurnal"></select></div>
                         <div class="form-group"><label>Dari Tanggal</label><input type="date" id="filterMulaiJurnal"></div>
@@ -52,10 +173,9 @@
                 </div>
             </div>
 
-            <!-- SECTION REKAP DISIPLIN -->
             <div id="rekapDisiplinSection" class="content-section" style="display: none;">
                 <div class="card">
-                    <div class="card-header">Rekapitulasi Pelanggaran Disiplin Siswa</div>
+                    <div class="card-header">Arsip Tabel Pelanggaran Disiplin Siswa</div>
                     <div class="form-grid">
                         <div class="form-group"><label>Cari NISN / Nama Siswa</label><input type="text" id="filterSiswaDisiplin" placeholder="Ketik NISN atau Nama..."></div>
                         <div class="form-group"><label>Dari Tanggal</label><input type="date" id="filterMulaiDisiplin"></div>
@@ -79,6 +199,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="rekap.js"></script>
 </body>
 </html>
