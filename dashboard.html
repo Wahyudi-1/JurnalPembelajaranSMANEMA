@@ -225,8 +225,10 @@
                  <div class="card">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <span>Manajemen Database Siswa</span>
+                        <!-- TOMBOL UNDUH TEMPLATE DITAMBAHKAN DI SINI -->
                         <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                             <input type="file" id="importSiswaInput" accept=".csv" style="display: none;">
+                            <button id="downloadTemplateSiswaButton" class="btn btn-sm btn-secondary">Unduh Template</button>
                             <button id="importSiswaButton" class="btn btn-sm btn-info">Import CSV</button>
                             <button id="exportSiswaButton" class="btn btn-sm btn-success">Export Excel</button>
                             <button id="refreshSiswaButton" class="btn btn-sm btn-secondary">Refresh</button>
@@ -268,7 +270,6 @@
                             <div class="form-group"><label for="formPasswordPengguna">Password</label><input type="password" id="formPasswordPengguna" placeholder="Minimal 6 karakter" required></div>
                             <div class="form-group">
                                 <label for="formPeran">Hak Akses (Peran)</label>
-                                <!-- DROPDOWN PERAN YANG TELAH DIPERBAIKI -->
                                 <select id="formPeran" required>
                                     <option value="Guru" selected>Guru</option>
                                     <option value="Wali Kelas">Wali Kelas</option>
