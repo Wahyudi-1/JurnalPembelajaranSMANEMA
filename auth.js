@@ -1,23 +1,31 @@
 /**
  * =================================================================
- * SCRIPT OTENTIKASI - SISTEM JURNAL & DISIPLIN
+ * SCRIPT OTENTIKASI - SISTEM JURNAL & DISIPLIN GURU
  * =================================================================
- * @version 2.0 - Multi-Role Routing (Kepala Sekolah, Admin, Guru)
+ * @version 2.0 - Multi-Role Routing dengan Kredensial Update
  */
 
-const SUPABASE_URL = 'https://lkxjgsgkajpaloswedck.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxreGpnc2drYWpwYWxvc3dlZGNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDEyMjQsImV4cCI6MjA4NjE3NzIyNH0.A2KeArJQz6TNtLauZSyurMit3IK4hClwdoy4_qicPUc';
+// ====================================================================
+// TAHAP 1: KONFIGURASI SUPABASE
+// ====================================================================
 
+const SUPABASE_URL = 'https://pbfhvyqhshuvyakjfpka.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZmh2eXFoc2h1dnlha2pmcGthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTY1NTksImV4cCI6MjEwNjk5MjU1OX0.RMDKCmkniLHoCgxsFr0noBlbB4DoqH1CTZc4lRtnPNg';
+
+// Cek apakah library Supabase sudah dimuat
 if (typeof window.supabase === 'undefined') {
-    alert('Sistem Error: Library Supabase gagal dimuat. Periksa koneksi internet Anda.');
+    console.error('CRITICAL ERROR: Library Supabase belum dimuat. Pastikan script CDN ada di index.html');
+    alert('Sistem Error: Koneksi ke database gagal (Library Missing).');
 }
 
 const { createClient } = window.supabase;
 var supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+
 // ====================================================================
-// FUNGSI PEMBANTU (UI)
+// TAHAP 2: FUNGSI PEMBANTU (UI HELPERS)
 // ====================================================================
+
 function showLoading(isLoading) {
     const loader = document.getElementById('loadingIndicator');
     if (loader) loader.style.display = isLoading ? 'flex' : 'none';
@@ -30,11 +38,17 @@ function showStatusMessage(message, type = 'info', duration = 4000) {
     statusEl.className = `status-message ${type}`;
     statusEl.style.display = 'block';
     
-    if (duration > 0) setTimeout(() => { statusEl.style.display = 'none'; }, duration);
+    // Scroll ke pesan agar terlihat user
+    statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    if (duration > 0) {
+        setTimeout(() => { statusEl.style.display = 'none'; }, duration);
+    }
 }
 
+
 // ====================================================================
-// FUNGSI ROUTING (PENGALIHAN HALAMAN BERDASARKAN ROLE)
+// TAHAP 3: FUNGSI ROUTING (PENGALIHAN HALAMAN BERDASARKAN ROLE)
 // ====================================================================
 async function routeUser(userId) {
     const { data: profile, error } = await supabaseClient
@@ -44,62 +58,75 @@ async function routeUser(userId) {
         .single();
 
     if (error || !profile) {
-        showStatusMessage('Gagal membaca hak akses.', 'error');
+        showStatusMessage('Gagal membaca hak akses profil dari database.', 'error');
         showLoading(false);
         return;
     }
 
-    // Arahkan ke halaman masing-masing
+    // Arahkan ke halaman masing-masing sesuai hak akses
     if (profile.role === 'Kepala Sekolah') {
         window.location.replace('rekap.html');
     } else if (profile.role === 'Guru') {
         window.location.replace('guru.html');
     } else {
-        window.location.replace('dashboard.html'); // Default Admin
+        window.location.replace('dashboard.html'); // Default ke Panel Admin
     }
 }
 
+
 // ====================================================================
-// FUNGSI UTAMA OTENTIKASI
+// TAHAP 4: FUNGSI OTENTIKASI & MANAJEMEN SESI
 // ====================================================================
 
-// 1. Cek jika user sudah login sebelumnya (Auto-login)
 async function checkSessionForLoginPage() {
     const { data: { session } } = await supabaseClient.auth.getSession();
+    
     if (session && !window.location.hash.includes('type=recovery')) {
+        console.log('User sudah login, mengalihkan ke panel...');
         showLoading(true);
         await routeUser(session.user.id);
     }
 }
 
-// 2. Fungsi Login Manual
 async function handleLogin(e) {
-    if(e) e.preventDefault(); // Mencegah halaman refresh saat tombol ditekan
+    if(e) e.preventDefault(); // Mencegah halaman merefresh otomatis saat form dikirim
+    console.log('Proses Login Dimulai...'); 
     
     const email = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     
-    if (!email || !password) return showStatusMessage('Email dan password harus diisi.', 'error');
+    if (!email || !password) {
+        return showStatusMessage('Email dan password harus diisi.', 'error');
+    }
 
     showLoading(true);
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
     if (error) {
         showLoading(false);
+        console.error('Login Error:', error);
         return showStatusMessage(`Login Gagal: ${error.message}`, 'error');
     }
     
-    showStatusMessage('Login berhasil! Memuat panel Anda...', 'success', 0); // Durasi 0 agar pesan tidak hilang
+    console.log('Login Berhasil:', data);
+    showStatusMessage('Login berhasil! Mengalihkan ke halaman Anda...', 'success', 0);
+    
+    // Arahkan user ke halaman yang tepat menggunakan fungsi routeUser
     await routeUser(data.user.id);
 }
 
-// 3. Fungsi Lupa Password
 async function handleForgotPassword(e) {
     if(e) e.preventDefault();
-    const email = document.getElementById('username').value;
+    const emailEl = document.getElementById('username');
+    const email = emailEl.value;
 
-    if (!email) return showStatusMessage('Silakan masukkan alamat email Anda di kolom atas, lalu klik "Lupa Password?".', 'error');
-    if (!confirm(`Kirim link reset password ke alamat: ${email}?`)) return;
+    if (!email) {
+        return showStatusMessage('Silakan masukkan alamat email Anda, lalu klik "Lupa Password?".', 'error');
+    }
+
+    if (!confirm(`Anda akan mengirimkan link reset password ke alamat: ${email}. Lanjutkan?`)) {
+        return;
+    }
 
     showLoading(true);
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
@@ -107,16 +134,17 @@ async function handleForgotPassword(e) {
     });
     showLoading(false);
 
-    if (error) return showStatusMessage(`Gagal mengirim email: ${error.message}`, 'error');
-    showStatusMessage('Email reset password telah dikirim! Periksa kotak masuk Anda.', 'success');
+    if (error) {
+        return showStatusMessage(`Gagal mengirim email: ${error.message}`, 'error');
+    }
+    
+    showStatusMessage('Email untuk reset password telah dikirim! Silakan periksa kotak masuk Anda.', 'success');
 }
 
-// ====================================================================
-// SETUP DOM & EVENT LISTENERS
-// ====================================================================
 function setupPasswordToggle() {
     const toggleIcon = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
+
     if (!toggleIcon || !passwordInput) return;
 
     const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg>`;
@@ -143,44 +171,63 @@ function setupAuthListener() {
             document.getElementById('resetPasswordForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const newPassword = document.getElementById('newPassword').value;
-                if (!newPassword || newPassword.length < 6) return showStatusMessage('Password baru minimal 6 karakter.', 'error');
+                if (!newPassword || newPassword.length < 6) {
+                    return showStatusMessage('Password baru minimal 6 karakter.', 'error');
+                }
                 
                 showLoading(true);
                 const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
                 showLoading(false);
                 
-                if (error) return showStatusMessage(`Gagal memperbarui: ${error.message}`, 'error');
+                if (error) {
+                    return showStatusMessage(`Gagal memperbarui password: ${error.message}`, 'error');
+                }
                 
-                showStatusMessage('Password berhasil diperbarui! Mengalihkan ke login...', 'success', 3000);
-                setTimeout(() => { window.location.hash = ''; window.location.reload(); }, 3000);
+                showStatusMessage('Password berhasil diperbarui! Anda akan diarahkan ke halaman login.', 'success', 3000);
+                setTimeout(() => { 
+                    window.location.hash = '';
+                    window.location.reload(); 
+                }, 3000);
             };
         }
     });
 }
 
+
+// ====================================================================
+// TAHAP 5: INISIALISASI HALAMAN LOGIN
+// ====================================================================
+
 function initLoginPage() {
+    console.log('Inisialisasi Halaman Login...');
     checkSessionForLoginPage();
     setupAuthListener();
     setupPasswordToggle();
 
     const loginForm = document.querySelector('.login-form-container form');
     if (loginForm) {
-        // Hapus event listener lama dengan clone node untuk menghindari penumpukan
+        // Hapus event listener lama dengan clone node untuk membersihkan duplikat
         const newForm = loginForm.cloneNode(true);
         loginForm.parentNode.replaceChild(newForm, loginForm);
+        
         newForm.addEventListener('submit', handleLogin);
+        
+        // Re-attach password toggle logic
         setupPasswordToggle(); 
+    } else {
+        console.error('Form login tidak ditemukan!');
     }
 
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     if (forgotPasswordLink) {
         const newLink = forgotPasswordLink.cloneNode(true);
         forgotPasswordLink.parentNode.replaceChild(newLink, forgotPasswordLink);
+        
         newLink.addEventListener('click', handleForgotPassword);
     }
 }
 
-// Jalankan inisialisasi saat dokumen HTML selesai dimuat
+// Jalankan saat dokumen siap
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initLoginPage);
 } else {
