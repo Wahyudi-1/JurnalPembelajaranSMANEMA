@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Panel Wali Kelas - Sistem Jurnal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png">
+</head>
+<body>
+    <header>
+        <div class="header-brand">
+            <img src="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png" alt="Logo">
+            <div class="logo">Panel Wali Kelas</div>
+        </div>
+        <nav class="header-nav">
+            <span id="welcomeMessage" class="header-welcome">Memuat...</span>
+            <button id="logoutButton" class="btn btn-danger btn-sm">Logout</button>
+        </nav>
+    </header>
+
+    <div class="dashboard-wrapper">
+        <aside class="sidebar-nav">
+            <!-- Menu Khusus Wali Kelas -->
+            <h4 style="color: var(--primary-color);">Tugas Wali Kelas (<span id="infoKelasWali">-</span>)</h4>
+            <button data-section="waliKehadiranSection" class="btn-nav active" style="border-left: 4px solid var(--primary-color);">Rekap Kehadiran Kelas</button>
+            <button data-section="waliJurnalSection" class="btn-nav" style="border-left: 4px solid var(--primary-color);">Rekap Jurnal Kelas</button>
+            <hr>
+            <!-- Menu Guru Biasa -->
+            <h4>Tugas Mengajar Guru</h4>
+            <button data-section="jurnalSection" class="btn-nav">Input Jurnal</button>
+            <button data-section="nilaiSection" class="btn-nav">Input Nilai</button>
+            <button data-section="disiplinSection" class="btn-nav">Catatan Disiplin</button>
+            <button data-section="riwayatJurnalSection" class="btn-nav">Riwayat Jurnal</button>
+            <button data-section="riwayatNilaiSection" class="btn-nav">Rekap Nilai</button>
+            <button data-section="riwayatDisiplinSection" class="btn-nav">Riwayat Disiplin</button>
+        </aside>
+
+        <main class="dashboard-content">
+            <div id="statusMessage" class="status-message"></div>
+            <div id="loadingIndicator" class="loading-overlay" style="display: none;"><div class="spinner"></div></div>
+
+            <!-- ============================================== -->
+            <!-- BAGIAN KHUSUS WALI KELAS                       -->
+            <!-- ============================================== -->
+            <div id="waliKehadiranSection" class="content-section">
+                <div class="card">
+                    <div class="card-header">Rekap Akumulasi Kehadiran Kelas <span class="text-kelas-wali"></span></div>
+                    <p style="color: gray; font-size: 0.9em; margin-bottom: 1rem;">Data ditarik otomatis dari presensi jurnal seluruh guru mata pelajaran.</p>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Nama Siswa</th><th>Sakit</th><th>Izin</th><th>Alfa</th><th>Total Absen</th></tr></thead>
+                            <tbody id="waliKehadiranTableBody"><tr><td colspan="5" style="text-align: center;">Memuat data kehadiran...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="waliJurnalSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Rekap Jurnal Mengajar Kelas <span class="text-kelas-wali"></span></div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Tanggal</th><th>Mata Pelajaran</th><th>Guru Pengajar</th><th>Materi & Catatan</th></tr></thead>
+                            <tbody id="waliJurnalTableBody"><tr><td colspan="4" style="text-align: center;">Memuat jurnal kelas...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- BAGIAN GURU UMUM (SEPERTI DI GURU.HTML)        -->
+            <!-- ============================================== -->
+            
+            <div id="jurnalSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Input Jurnal Pembelajaran</div>
+                    <form id="formJurnal">
+                        <div class="form-grid">
+                            <div class="form-group"><label>Pilih Kelas</label><select id="jurnalKelas" required></select></div>
+                            <div class="form-group"><label>Pilih Mata Pelajaran</label><select id="jurnalMapel" required></select></div>
+                        </div>
+                        <div class="form-group" style="margin-top: 1rem;"><button type="button" id="loadSiswaForJurnalButton" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Presensi</button></div>
+                        <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                        <div class="form-grid">
+                            <div class="form-group"><label>Tanggal</label><input type="date" id="jurnalTanggal" required></div>
+                        </div>
+                        <div class="form-group"><label>Materi</label><textarea id="jurnalMateri" required></textarea></div>
+                        <div class="form-group"><label>Catatan Tambahan</label><textarea id="jurnalCatatan"></textarea></div>
+                        <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--primary-dark);">Presensi Siswa</h4>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>NISN</th><th>Nama</th><th>Kehadiran</th></tr></thead>
+                                <tbody id="presensiTableBody"><tr><td colspan="3" style="text-align: center;">Pilih kelas dan mapel...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="form-actions"><button type="submit" id="submitJurnalButton" class="btn btn-primary">Simpan Jurnal</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="nilaiSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Input Nilai Siswa</div>
+                    <form id="formFilterNilai">
+                        <div class="form-grid">
+                            <div class="form-group"><label>Tahun Ajaran</label><select id="nilaiFilterTahunAjaran" required></select></div>
+                            <div class="form-group"><label>Semester</label><select id="nilaiFilterSemester" required></select></div>
+                            <div class="form-group"><label>Kelas</label><select id="nilaiFilterKelas" required></select></div>
+                            <div class="form-group"><label>Mata Pelajaran</label><select id="nilaiFilterMataPelajaran" required></select></div>
+                        </div>
+                        <div class="form-group" style="margin-top: 1.5rem;"><button type="submit" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Penilaian</button></div>
+                    </form>
+                    <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <div id="areaInputNilai" style="display: none;">
+                        <form id="formInputNilai">
+                            <div class="form-group">
+                                <label for="jenisNilai">Jenis Penilaian (Contoh: Ulangan Harian 1, PTS, PAS)</label>
+                                <input type="text" id="jenisNilai" required autocomplete="off">
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead id="nilaiTableHead"></thead>
+                                    <tbody id="nilaiTableBody"></tbody>
+                                </table>
+                            </div>
+                            <div class="form-group" style="margin-top: 2rem;"><button type="submit" class="btn btn-primary btn-block">Simpan Semua Nilai</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="disiplinSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Input Catatan Kedisiplinan Siswa</div>
+                    <form id="formDisiplin">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Pencarian Siswa</label>
+                                <input type="text" id="nisnDisiplinInput" placeholder="Ketik NISN atau Nama..." autocomplete="off" required>
+                                <div id="nisnSuggestions" class="suggestions-container"></div>
+                            </div>
+                            <div class="form-group"><label>Nama Lengkap</label><input type="text" id="namaSiswaDisiplin" disabled></div>
+                        </div>
+                        <div class="form-group"><label>Pilih Pelanggaran</label><select id="deskripsiDisiplinInput" required></select></div>
+                        <div class="form-actions"><button type="submit" class="btn btn-primary">Simpan Catatan Disiplin</button></div>
+                    </form>
+                </div>
+            </div>
+            
+            <div id="riwayatJurnalSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Riwayat Jurnal Mengajar Anda</div>
+                    <div id="riwayatFilterForm" class="form-grid">
+                        <div class="form-group"><label>Filter Kelas</label><select id="riwayatFilterKelas"></select></div>
+                        <div class="form-group"><label>Filter Mapel</label><select id="riwayatFilterMapel"></select></div>
+                        <div class="form-group"><label>Dari Tanggal</label><input type="date" id="riwayatFilterTanggalMulai"></div>
+                        <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="riwayatFilterTanggalSelesai"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="filterRiwayatButton" class="btn btn-primary">Terapkan Filter</button>
+                        <button type="button" id="refreshRiwayatButton" class="btn btn-secondary">Refresh</button>
+                    </div>
+                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Tanggal</th><th>Kelas</th><th>Mata Pelajaran</th><th>Materi & Catatan</th></tr></thead>
+                            <tbody id="riwayatJurnalTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="riwayatNilaiSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Riwayat & Rekap Nilai Siswa</div>
+                    <div id="riwayatNilaiFilterForm" class="form-grid">
+                        <div class="form-group"><label>Tahun Ajaran</label><select id="rekapNilaiTA"></select></div>
+                        <div class="form-group"><label>Semester</label><select id="rekapNilaiSemester"></select></div>
+                        <div class="form-group"><label>Kelas</label><select id="rekapNilaiKelas"></select></div>
+                        <div class="form-group"><label>Mata Pelajaran</label><select id="rekapNilaiMapel"></select></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="filterRiwayatNilaiButton" class="btn btn-primary">Tampilkan Nilai</button>
+                    </div>
+                    <div id="areaKonversiExport" style="display: none; background-color: #f8f9fa; padding: 1.5rem; margin-top: 1.5rem; border: 1px solid var(--border-color);">
+                        <div class="form-grid">
+                            <div class="form-group"><label>Nilai Minimum Target</label><input type="number" id="konversiMin" value="75"></div>
+                            <div class="form-group"><label>Nilai Maksimum Target</label><input type="number" id="konversiMax" value="100"></div>
+                            <div class="form-group" style="display: flex; align-items: flex-end;"><button type="button" id="exportRiwayatNilaiButton" class="btn btn-success btn-block">Export Excel (Dikonversi)</button></div>
+                        </div>
+                    </div>
+                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Tahun / Smt</th><th>NISN</th><th>Nama Siswa</th><th>Jenis Penilaian</th><th>Nilai Asli</th></tr></thead>
+                            <tbody id="riwayatNilaiTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="riwayatDisiplinSection" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">Riwayat Catatan Disiplin Siswa</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Cari NISN</label><input type="text" id="riwayatDisiplinFilterNisn"></div>
+                        <div class="form-group"><label>Dari Tanggal</label><input type="date" id="riwayatDisiplinFilterTanggalMulai"></div>
+                        <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="riwayatDisiplinFilterTanggalSelesai"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="filterRiwayatDisiplinButton" class="btn btn-primary">Terapkan Filter</button>
+                    </div>
+                    <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Tanggal</th><th>NISN</th><th>Nama Siswa</th><th>Pelanggaran (Poin)</th><th>Pencatat</th></tr></thead>
+                            <tbody id="riwayatDisiplinTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="walikelas.js"></script>
+</body>
+</html>
