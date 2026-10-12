@@ -132,49 +132,55 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="auth.js"></script>
 
-    <!-- SCRIPT KHUSUS UNTUK INSTALL PWA -->
+  <!-- SCRIPT KHUSUS UNTUK INSTALL PWA (MODE DEBUG) -->
     <script>
-        // 1. Daftarkan Service Worker
+        // 1. Daftarkan Service Worker dengan cache buster
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => {
+                // Menambahkan ?v=2 untuk memaksa browser mencari update Service Worker
+                navigator.serviceWorker.register('sw.js?v=2').then(reg => {
                     console.log('PWA Service Worker registered.', reg);
+                    // Paksa update service worker jika ada perubahan
+                    reg.update();
                 }).catch(err => console.error('PWA SW Registration failed:', err));
             });
         }
 
         // 2. Tangkap event install dari Browser
-        let deferredPrompt;
-        const installContainer = document.getElementById('installContainer'); // Target div, bukan button
+        let deferredPrompt = null;
+        const installContainer = document.getElementById('installContainer');
         const installBtn = document.getElementById('installAppBtn');
 
+        // PAKSA MUNCUL UNTUK TESTING (Biar kita tahu kode HTML sudah terupdate)
+        installContainer.style.display = 'block';
+
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Mencegah banner default browser muncul
             e.preventDefault();
-            // Simpan event untuk dipicu nanti saat tombol diklik
             deferredPrompt = e;
-            // Munculkan kontainer tombol Install
-            installContainer.style.display = 'block';
+            // Jika syarat PWA terpenuhi, ubah teks tombol
+            installBtn.innerHTML = '📲 Install Aplikasi di HP (Siap!)';
         });
 
         // 3. Logika ketika tombol install diklik
         installBtn.addEventListener('click', async () => {
-            if (deferredPrompt !== null) {
-                // Munculkan pop-up install native dari HP
-                deferredPrompt.prompt();
-                // Tunggu respon user
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('User menginstal aplikasi');
-                    installContainer.style.display = 'none'; // Sembunyikan kontainer
-                }
-                deferredPrompt = null;
+            if (!deferredPrompt) {
+                // Pesan error ini muncul jika Chrome masih menolak PWA Anda
+                alert("Chrome belum mengizinkan instalasi!\n\nPastikan:\n1. Anda sudah 'Hapus & Reset' setelan situs di HP.\n2. Tidak ada error pada gambar Logo.png.\n3. Anda membukanya lewat Browser biasa (bukan pop-up dari link WhatsApp).");
+                return;
             }
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installContainer.style.display = 'none';
+            }
+            deferredPrompt = null;
         });
 
         // Sembunyikan tombol jika sudah berhasil diinstal
         window.addEventListener('appinstalled', () => {
             installContainer.style.display = 'none';
+            alert("Aplikasi berhasil diinstal! Silakan cek Layar Utama HP Anda.");
         });
     </script>
 </body>
