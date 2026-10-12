@@ -132,55 +132,51 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="auth.js"></script>
 
-  <!-- SCRIPT KHUSUS UNTUK INSTALL PWA (MODE DEBUG) -->
+ <!-- SCRIPT KHUSUS UNTUK INSTALL PWA -->
     <script>
-        // 1. Daftarkan Service Worker dengan cache buster
+        // 1. Daftarkan Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Menambahkan ?v=2 untuk memaksa browser mencari update Service Worker
-                navigator.serviceWorker.register('sw.js?v=2').then(reg => {
-                    console.log('PWA Service Worker registered.', reg);
-                    // Paksa update service worker jika ada perubahan
-                    reg.update();
-                }).catch(err => console.error('PWA SW Registration failed:', err));
+                navigator.serviceWorker.register('sw.js?v=4').then(reg => {
+                    console.log('PWA Service Worker registered.');
+                });
             });
         }
 
-        // 2. Tangkap event install dari Browser
         let deferredPrompt = null;
         const installContainer = document.getElementById('installContainer');
         const installBtn = document.getElementById('installAppBtn');
 
-        // PAKSA MUNCUL UNTUK TESTING (Biar kita tahu kode HTML sudah terupdate)
+        // Tampilkan tombol 
         installContainer.style.display = 'block';
 
+        // Jika browser mendukung & memenuhi syarat, simpan event-nya
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // Jika syarat PWA terpenuhi, ubah teks tombol
             installBtn.innerHTML = '📲 Install Aplikasi di HP (Siap!)';
         });
 
-        // 3. Logika ketika tombol install diklik
+        // Logika saat tombol ditekan
         installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) {
-                // Pesan error ini muncul jika Chrome masih menolak PWA Anda
-                alert("Chrome belum mengizinkan instalasi!\n\nPastikan:\n1. Anda sudah 'Hapus & Reset' setelan situs di HP.\n2. Tidak ada error pada gambar Logo.png.\n3. Anda membukanya lewat Browser biasa (bukan pop-up dari link WhatsApp).");
-                return;
+            if (deferredPrompt !== null) {
+                // Munculkan dialog instalasi dari HP
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installContainer.style.display = 'none';
+                }
+                deferredPrompt = null;
+            } else {
+                // JIKA TOMBOL MATI / DIBLOKIR BROWSER, TAMPILKAN PESAN INI:
+                alert("Instalasi otomatis dicegah oleh sistem.\n\nSOLUSI:\n1. Buka web ini MURNI lewat aplikasi Google Chrome (Jangan dari klik link WhatsApp/IG).\n2. Jika Anda menggunakan iPhone, ketuk tombol 'Bagikan' (Share) di bawah, lalu pilih 'Tambahkan ke Layar Utama'.\n3. Coba cek daftar aplikasi di HP Anda, mungkin Jurnal SMANEMA sudah terinstal.");
             }
-            
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                installContainer.style.display = 'none';
-            }
-            deferredPrompt = null;
         });
 
         // Sembunyikan tombol jika sudah berhasil diinstal
         window.addEventListener('appinstalled', () => {
             installContainer.style.display = 'none';
-            alert("Aplikasi berhasil diinstal! Silakan cek Layar Utama HP Anda.");
+            alert("Aplikasi berhasil diinstal di perangkat Anda!");
         });
     </script>
 </body>
