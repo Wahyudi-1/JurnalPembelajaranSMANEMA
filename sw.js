@@ -1,60 +1,74 @@
-const CACHE_NAME = 'jurnal-smanema-v2';
-
-// Daftar file yang akan disimpan permanen di HP
-const ASSETS_TO_CACHE = [
-    '/',
-    '/index.html',
-    '/guru.html',
-    '/walikelas.html',
-    '/siswa.html',
-    '/dashboard.html',
-    '/style.css',
-    '/auth.js',
-    '/guru.js',
-    '/siswa.js',
-    '/dashboard.js',
-    '/walikelas.js',
-    '/manifest.json',
-    'https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png'
+const CACHE_NAME = 'jurnal-smanema-v5'; // Ganti versi ini jika ada perubahan kode HTML/JS/CSS di masa depan
+const urlsToCache = [
+  './',
+  './index.html',
+  './guru.html',
+  './walikelas.html',
+  './siswa.html',
+  './dashboard.html',
+  './rekap.html',
+  './style.css',
+  './auth.js',
+  './guru.js',
+  './siswa.js',
+  './dashboard.js',
+  './walikelas.js',
+  './rekap.js',
+  './manifest.json',
+  './Logo.png'
 ];
 
-// Saat Aplikasi diinstal, simpan semua file ke memori HP
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            console.log('[Service Worker] Caching files...');
-            return cache.addAll(ASSETS_TO_CACHE);
+// Install: Cache semua file penting saat pertama kali dibuka
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Membuka cache dan menyimpan file PWA Jurnal');
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+// Activate: Bersihkan cache lama jika versi berubah
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Menghapus cache versi lama:', cacheName);
+            return caches.delete(cacheName);
+          }
         })
-    );
+      );
+    })
+  );
+  // Memastikan service worker baru langsung mengendalikan klien/halaman yang sedang terbuka
+  return self.clients.claim();
+});
+
+// Fetch: Layani request dari Cache dulu (Offline First), kecuali database Supabase
+self.addEventListener('fetch', event => {
+  // PENTING: Jangan pernah melakukan cache pada komunikasi ke Database Supabase
+  if (event.request.url.includes('supabase.co')) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response; // Gunakan file dari HP (Bisa buka tanpa internet)
+        }
+        return fetch(event.request); // Tarik dari internet jika belum ada di HP
+      })
+  );
+});
+
+// Message Listener: Menerima perintah dari index.html untuk langsung menerapkan update
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('Menerapkan update Service Worker Jurnal ke versi baru...');
     self.skipWaiting();
-});
-
-// Hapus cache lama jika ada versi aplikasi baru
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cache) => {
-                    if (cache !== CACHE_NAME) {
-                        console.log('[Service Worker] Menghapus cache lama...');
-                        return caches.delete(cache);
-                    }
-                })
-            );
-        })
-    );
-});
-
-// Strategi "Cache First, then Network"
-// Jika buka web tanpa internet, ambil tampilan dari memori HP
-self.addEventListener('fetch', (event) => {
-    // Kita hanya meng-cache tampilan web, BUKAN request ke database Supabase
-    if (event.request.url.includes('supabase.co')) return;
-
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            // Jika ada di memori HP, tampilkan. Jika tidak, ambil dari internet.
-            return cachedResponse || fetch(event.request);
-        })
-    );
+  }
 });
