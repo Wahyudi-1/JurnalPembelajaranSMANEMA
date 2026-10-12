@@ -1,10 +1,10 @@
 {
-  "name": "Jurnal SMANEMA",
-  "short_name": "Jurnal",
+  "name": "Sistem Jurnal SMANEMA",
+  "short_name": "Jurnal SMANEMA",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f1f5f9",
-  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "theme_color": "#3498db",
   "orientation": "any",
   "scope": "./",
   "icons": [
@@ -12,13 +12,11 @@
       "src": "./Logo.png",
       "sizes": "192x192",
       "type": "image/png"
-      "purpose": "any maskable"
     },
     {
       "src": "./Logo.png",
       "sizes": "512x512",
       "type": "image/png"
-      "purpose": "any maskable"
     }
   ]
 }
