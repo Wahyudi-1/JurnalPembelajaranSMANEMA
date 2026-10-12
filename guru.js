@@ -2,6 +2,7 @@
  * =================================================================
  * SCRIPT KHUSUS PANEL GURU - SISTEM JURNAL & DISIPLIN
  * =================================================================
+ * @version 7.2 - Ditambahkan Dukungan PWA & Mode Offline-First
  */
 
 const SUPABASE_URL = 'https://pbfhvyqhshuvyakjfpka.supabase.co';
@@ -22,8 +23,54 @@ const AppState = {
     filteredNilaiHistory: []
 };
 
-// --- HELPERS ---
+// ====================================================================
+// MODUL OFFLINE SYNC (BARU)
+// ====================================================================
+const OFFLINE_QUEUE_KEY = 'jurnal_offline_queue';
+
+function simpanKeAntreanOffline(data) {
+    let antrean = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || [];
+    antrean.push(data);
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(antrean));
+    showStatusMessage('Anda sedang offline! Data disimpan di HP dan akan dikirim otomatis saat internet kembali.', 'info', 6000);
+}
+
+async function sinkronisasiDataOffline() {
+    let antrean = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)) || [];
+    if (antrean.length === 0) return; // Tidak ada data tertunda
+
+    showStatusMessage('Koneksi internet kembali. Mengirim data offline ke server...', 'info', 0);
+    
+    let antreanGagal = [];
+    let berhasil = 0;
+
+    for (let data of antrean) {
+        const { error } = await supabaseClient.from('jurnal_pelajaran').insert(data);
+        if (!error) {
+            berhasil++;
+        } else {
+            antreanGagal.push(data); // Simpan ulang jika masih gagal
+        }
+    }
+
+    // Perbarui sisa antrean
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(antreanGagal));
+    
+    if (berhasil > 0) {
+        showStatusMessage(`${berhasil} data jurnal offline berhasil tersinkronisasi!`, 'success');
+        if (typeof loadRiwayatJurnal === 'function') loadRiwayatJurnal(); // Refresh tabel
+    }
+}
+
+// Pasang pendeteksi sinyal internet
+window.addEventListener('online', sinkronisasiDataOffline);
+window.addEventListener('offline', () => showStatusMessage('Koneksi terputus. Anda masuk ke Mode Offline.', 'info'));
+
+// ====================================================================
+// FUNGSI PEMBANTU (HELPERS)
+// ====================================================================
 function showLoading(isLoading) { document.getElementById('loadingIndicator').style.display = isLoading ? 'flex' : 'none'; }
+
 function showStatusMessage(message, type = 'info', duration = 4000) {
     const statusEl = document.getElementById('statusMessage');
     statusEl.textContent = message;
@@ -32,6 +79,7 @@ function showStatusMessage(message, type = 'info', duration = 4000) {
     statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (duration > 0) setTimeout(() => { statusEl.style.display = 'none'; }, duration);
 }
+
 function populateDropdown(selectElementId, data, valueField, textField, defaultOptionText) {
     const select = document.getElementById(selectElementId);
     if (!select) return;
@@ -45,7 +93,9 @@ function populateDropdown(selectElementId, data, valueField, textField, defaultO
     });
 }
 
-// --- INISIALISASI ---
+// ====================================================================
+// INISIALISASI
+// ====================================================================
 async function initSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) return window.location.replace('index.html');
@@ -119,7 +169,134 @@ async function loadInitialData() {
     populateDropdown('rekapNilaiMapel', AppState.assignments, 'mata_pelajaran', 'mata_pelajaran', 'Pilih Mata Pelajaran');
 }
 
-// --- MODUL INPUT NILAI ---
+// ====================================================================
+// MODUL JURNAL PENGAJARAN (DENGAN MODE OFFLINE)
+// ====================================================================
+async function loadSiswaForJurnal() {
+    const kelas = document.getElementById('jurnalKelas').value;
+    const mapel = document.getElementById('jurnalMapel').value;
+    const tableBody = document.getElementById('presensiTableBody');
+
+    if (!kelas || !mapel) return showStatusMessage('Harap pilih Kelas dan Mata Pelajaran.', 'error');
+    
+    const siswaDiKelas = AppState.students.filter(s => s.kelas === kelas);
+    if (siswaDiKelas.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center;">Tidak ada data siswa di kelas ${kelas}.</td></tr>`;
+        return;
+    }
+
+    tableBody.innerHTML = siswaDiKelas.map(siswa => `
+        <tr data-nisn="${siswa.nisn}" data-nama="${siswa.nama}">
+            <td data-label="NISN">${siswa.nisn}</td>
+            <td data-label="Nama">${siswa.nama}</td>
+            <td data-label="Kehadiran">
+                <select class="kehadiran-status" style="width:100%; padding:0.5rem; border:1px solid #dfe4ea; border-radius:5px;">
+                    <option value="Hadir" selected>Hadir</option>
+                    <option value="Sakit">Sakit</option>
+                    <option value="Izin">Izin</option>
+                    <option value="Alfa">Alfa</option>
+                </select>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function handleJurnalSubmit(event) {
+    event.preventDefault();
+    const presensiRows = document.querySelectorAll('#presensiTableBody tr');
+    
+    if (presensiRows.length > 0 && presensiRows[0]?.cells?.[0]?.textContent.includes('Pilih kelas')) {
+         return showStatusMessage('Harap klik "Tampilkan Siswa untuk Presensi" terlebih dahulu.', 'error');
+    }
+
+    const jurnalData = {
+        guru_id: AppState.user.id,
+        kelas: document.getElementById('jurnalKelas').value,
+        mata_pelajaran: document.getElementById('jurnalMapel').value,
+        tanggal: document.getElementById('jurnalTanggal').value,
+        materi: document.getElementById('jurnalMateri').value,
+        catatan: document.getElementById('jurnalCatatan').value || '',
+    };
+
+    const siswaTidakHadir = [];
+    presensiRows.forEach(row => {
+        if (row.dataset.nisn) { 
+            const status = row.querySelector('.kehadiran-status').value;
+            if (status !== 'Hadir') siswaTidakHadir.push(`${row.dataset.nama} (${status})`);
+        }
+    });
+
+    if (siswaTidakHadir.length > 0) jurnalData.catatan += `\n\n--- PRESENSI TIDAK HADIR ---\n${siswaTidakHadir.join('\n')}`;
+
+    // --- CEK MODE OFFLINE ---
+    if (!navigator.onLine) {
+        simpanKeAntreanOffline(jurnalData);
+        event.target.reset();
+        document.getElementById('presensiTableBody').innerHTML = `<tr><td colspan="3" style="text-align: center;">Pilih kelas dan mapel, lalu klik "Tampilkan Siswa".</td></tr>`;
+        return; // Hentikan fungsi di sini
+    }
+
+    // --- PROSES ONLINE NORMAL ---
+    showLoading(true);
+    const { error } = await supabaseClient.from('jurnal_pelajaran').insert(jurnalData);
+    showLoading(false);
+    
+    if (error) return showStatusMessage(`Gagal menyimpan: ${error.message}`, 'error');
+    
+    showStatusMessage('Jurnal & presensi berhasil disimpan!', 'success');
+    event.target.reset();
+    document.getElementById('presensiTableBody').innerHTML = `<tr><td colspan="3" style="text-align: center;">Pilih kelas dan mapel, lalu klik "Tampilkan Siswa".</td></tr>`;
+}
+
+// ====================================================================
+// MODUL DISIPLIN 
+// ====================================================================
+function setupSiswaSearch() {
+    const searchInput = document.getElementById('nisnDisiplinInput');
+    const suggestionsContainer = document.getElementById('nisnSuggestions');
+    const namaSiswaInput = document.getElementById('namaSiswaDisiplin');
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        suggestionsContainer.style.display = 'block';
+        if (query.length < 2) { suggestionsContainer.innerHTML = ''; return; }
+        
+        const filteredSiswa = AppState.students.filter(s => s.nama.toLowerCase().includes(query) || s.nisn.includes(query)).slice(0, 5);
+        suggestionsContainer.innerHTML = filteredSiswa.map(s => `<div class="suggestion-item" data-nisn="${s.nisn}" data-nama="${s.nama}">${s.nama} (${s.nisn})</div>`).join('');
+    });
+    
+    searchInput.addEventListener('blur', () => setTimeout(() => { suggestionsContainer.style.display = 'none'; }, 200));
+
+    suggestionsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('suggestion-item')) {
+            searchInput.value = e.target.dataset.nisn;
+            namaSiswaInput.value = e.target.dataset.nama;
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+}
+
+async function handleDisiplinSubmit(event) {
+    event.preventDefault();
+    const disiplinData = {
+        nisn_siswa: document.getElementById('nisnDisiplinInput').value,
+        id_pelanggaran: document.getElementById('deskripsiDisiplinInput').value,
+        pencatat_id: AppState.user.id
+    };
+    
+    showLoading(true);
+    const { error } = await supabaseClient.from('catatan_disiplin').insert(disiplinData);
+    showLoading(false);
+    
+    if (error) return showStatusMessage(`Gagal menyimpan: ${error.message}`, 'error');
+    showStatusMessage('Catatan disiplin berhasil disimpan!', 'success');
+    event.target.reset();
+    document.getElementById('namaSiswaDisiplin').value = '';
+}
+
+// ====================================================================
+// MODUL NILAI
+// ====================================================================
 function handleLoadSiswaNilai(e) {
     e.preventDefault();
     const kelas = document.getElementById('nilaiFilterKelas').value;
@@ -189,7 +366,6 @@ async function handleSimpanSemuaNilai(e) {
     loadRiwayatNilai();
 }
 
-// --- MODUL REKAP & KONVERSI NILAI ---
 async function loadRiwayatNilai() {
     showLoading(true);
     const { data, error } = await supabaseClient
@@ -216,7 +392,7 @@ function renderRiwayatNilaiTable() {
         return;
     }
 
-    areaKonversi.style.display = 'block'; // Memunculkan form konversi
+    areaKonversi.style.display = 'block'; 
     tableBody.innerHTML = AppState.filteredNilaiHistory.map(n => `
         <tr>
             <td data-label="Tahun / Smt">${n.tahun_ajaran} (${n.semester})</td>
@@ -251,11 +427,7 @@ function exportRiwayatNilaiKonversi() {
 
     const dataToExport = AppState.filteredNilaiHistory.map(n => {
         const nilaiAsli = parseFloat(n.nilai) || 0;
-        
-        // Logika Matematika Konversi: ((Nilai / 100) * (Max - Min)) + Min
         let nilaiKonversi = ((nilaiAsli / 100) * (maxTarget - minTarget)) + minTarget;
-        
-        // Pembulatan ke 2 angka desimal agar rapi di Excel
         nilaiKonversi = Math.round(nilaiKonversi * 100) / 100;
 
         return {
@@ -276,119 +448,9 @@ function exportRiwayatNilaiKonversi() {
     XLSX.writeFile(wb, `Rekap_Nilai_Konversi_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-// --- MODUL JURNAL (TETAP) ---
-async function loadSiswaForJurnal() {
-    const kelas = document.getElementById('jurnalKelas').value;
-    const mapel = document.getElementById('jurnalMapel').value;
-    const tableBody = document.getElementById('presensiTableBody');
-
-    if (!kelas || !mapel) return showStatusMessage('Harap pilih Kelas dan Mata Pelajaran.', 'error');
-    
-    const siswaDiKelas = AppState.students.filter(s => s.kelas === kelas);
-    if (siswaDiKelas.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center;">Tidak ada data siswa di kelas ${kelas}.</td></tr>`;
-        return;
-    }
-
-    tableBody.innerHTML = siswaDiKelas.map(siswa => `
-        <tr data-nisn="${siswa.nisn}" data-nama="${siswa.nama}">
-            <td data-label="NISN">${siswa.nisn}</td>
-            <td data-label="Nama">${siswa.nama}</td>
-            <td data-label="Kehadiran">
-                <select class="kehadiran-status" style="width:100%; padding:0.5rem; border:1px solid #dfe4ea; border-radius:5px;">
-                    <option value="Hadir" selected>Hadir</option>
-                    <option value="Sakit">Sakit</option>
-                    <option value="Izin">Izin</option>
-                    <option value="Alfa">Alfa</option>
-                </select>
-            </td>
-        </tr>
-    `).join('');
-}
-
-async function handleJurnalSubmit(event) {
-    event.preventDefault();
-    const presensiRows = document.querySelectorAll('#presensiTableBody tr');
-    
-    if (presensiRows.length > 0 && presensiRows[0]?.cells?.[0]?.textContent.includes('Pilih kelas')) {
-         return showStatusMessage('Harap klik "Tampilkan Siswa untuk Presensi" terlebih dahulu.', 'error');
-    }
-
-    const jurnalData = {
-        guru_id: AppState.user.id,
-        kelas: document.getElementById('jurnalKelas').value,
-        mata_pelajaran: document.getElementById('jurnalMapel').value,
-        tanggal: document.getElementById('jurnalTanggal').value,
-        materi: document.getElementById('jurnalMateri').value,
-        catatan: document.getElementById('jurnalCatatan').value || '',
-    };
-
-    const siswaTidakHadir = [];
-    presensiRows.forEach(row => {
-        if (row.dataset.nisn) { 
-            const status = row.querySelector('.kehadiran-status').value;
-            if (status !== 'Hadir') siswaTidakHadir.push(`${row.dataset.nama} (${status})`);
-        }
-    });
-
-    if (siswaTidakHadir.length > 0) jurnalData.catatan += `\n\n--- PRESENSI TIDAK HADIR ---\n${siswaTidakHadir.join('\n')}`;
-
-    showLoading(true);
-    const { error } = await supabaseClient.from('jurnal_pelajaran').insert(jurnalData);
-    showLoading(false);
-    
-    if (error) return showStatusMessage(`Gagal menyimpan: ${error.message}`, 'error');
-    
-    showStatusMessage('Jurnal & presensi berhasil disimpan!', 'success');
-    event.target.reset();
-    document.getElementById('presensiTableBody').innerHTML = `<tr><td colspan="3" style="text-align: center;">Pilih kelas dan mapel, lalu klik "Tampilkan Siswa".</td></tr>`;
-}
-
-// --- MODUL DISIPLIN (TETAP) ---
-function setupSiswaSearch() {
-    const searchInput = document.getElementById('nisnDisiplinInput');
-    const suggestionsContainer = document.getElementById('nisnSuggestions');
-    const namaSiswaInput = document.getElementById('namaSiswaDisiplin');
-
-    searchInput.addEventListener('input', () => {
-        const query = searchInput.value.toLowerCase();
-        suggestionsContainer.style.display = 'block';
-        if (query.length < 2) { suggestionsContainer.innerHTML = ''; return; }
-        
-        const filteredSiswa = AppState.students.filter(s => s.nama.toLowerCase().includes(query) || s.nisn.includes(query)).slice(0, 5);
-        suggestionsContainer.innerHTML = filteredSiswa.map(s => `<div class="suggestion-item" data-nisn="${s.nisn}" data-nama="${s.nama}">${s.nama} (${s.nisn})</div>`).join('');
-    });
-    
-    searchInput.addEventListener('blur', () => setTimeout(() => { suggestionsContainer.style.display = 'none'; }, 200));
-
-    suggestionsContainer.addEventListener('click', (e) => {
-        if (e.target.classList.contains('suggestion-item')) {
-            searchInput.value = e.target.dataset.nisn;
-            namaSiswaInput.value = e.target.dataset.nama;
-            suggestionsContainer.style.display = 'none';
-        }
-    });
-}
-
-async function handleDisiplinSubmit(event) {
-    event.preventDefault();
-    const disiplinData = {
-        nisn_siswa: document.getElementById('nisnDisiplinInput').value,
-        id_pelanggaran: document.getElementById('deskripsiDisiplinInput').value,
-        pencatat_id: AppState.user.id
-    };
-    
-    showLoading(true);
-    const { error } = await supabaseClient.from('catatan_disiplin').insert(disiplinData);
-    showLoading(false);
-    
-    if (error) return showStatusMessage(`Gagal menyimpan: ${error.message}`, 'error');
-    showStatusMessage('Catatan disiplin berhasil disimpan!', 'success');
-    event.target.reset();
-    document.getElementById('namaSiswaDisiplin').value = '';
-}
-
-// --- RIWAYAT JURNAL & DISIPLIN (TETAP) ---
+// ====================================================================
+// MODUL RIWAYAT JURNAL & DISIPLIN
+// ====================================================================
 async function loadRiwayatJurnal() {
     showLoading(true);
     const { data, error } = await supabaseClient.from('jurnal_pelajaran').select('*').eq('guru_id', AppState.user.id).order('tanggal', { ascending: false });
@@ -491,7 +553,9 @@ function exportRiwayatJurnal() {
     XLSX.writeFile(wb, `Jurnal_Mengajar_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-// --- SETUP EVENT LISTENERS ---
+// ====================================================================
+// SETUP EVENT LISTENERS UTAMA
+// ====================================================================
 document.addEventListener('DOMContentLoaded', async () => {
     if (!document.querySelector('.dashboard-wrapper')) return; 
     
@@ -539,7 +603,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('filterRiwayatNilaiButton').addEventListener('click', applyNilaiFilter);
     document.getElementById('refreshRiwayatNilaiButton').addEventListener('click', loadRiwayatNilai);
-    
-    // Listener Tombol Export Nilai Konversi
     document.getElementById('exportRiwayatNilaiButton').addEventListener('click', exportRiwayatNilaiKonversi);
+
+    // PENTING: Cek dan kirim antrean data offline jika internet ada saat pertama kali buka
+    if (navigator.onLine) sinkronisasiDataOffline();
 });
