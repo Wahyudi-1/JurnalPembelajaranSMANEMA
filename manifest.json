@@ -1,10 +1,12 @@
 {
   "name": "Jurnal SMANEMA",
   "short_name": "Jurnal",
-  "start_url": "/",
-  "display": "fullscreen",
-  "background_color": "#ffffff",
-  "theme_color": "#3498db",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#2563eb",
+  "orientation": "any",
+  "scope": "./",
   "icons": [
     {
       "src": "./Logo.png",
