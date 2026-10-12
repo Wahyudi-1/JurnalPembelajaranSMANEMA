@@ -1,21 +1,14 @@
-const CACHE_NAME = 'jurnal-smanema-v5'; // Ganti versi ini jika ada perubahan kode HTML/JS/CSS di masa depan
+const CACHE_NAME = 'jurnal-smanema-v6'; // Versi dinaikkan untuk memaksa pembaruan
+
+// HANYA masukkan file inti. Hindari memasukkan terlalu banyak file 
+// di awal agar proses instalasi Service Worker tidak rentan gagal.
 const urlsToCache = [
-  './',
-  './index.html',
-  './guru.html',
-  './walikelas.html',
-  './siswa.html',
-  './dashboard.html',
-  './rekap.html',
-  './style.css',
-  './auth.js',
-  './guru.js',
-  './siswa.js',
-  './dashboard.js',
-  './walikelas.js',
-  './rekap.js',
-  './manifest.json',
-  './Logo.png'
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/Logo.png',
+  '/style.css',
+  '/auth.js'
 ];
 
 // Install: Cache semua file penting saat pertama kali dibuka
