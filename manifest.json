@@ -1,7 +1,7 @@
 {
   "name": "Jurnal SMANEMA",
   "short_name": "Jurnal",
-  "start_url": "./index.html",
+  "start_url": "/",
   "display": "fullscreen",
   "background_color": "#ffffff",
   "theme_color": "#3498db",
