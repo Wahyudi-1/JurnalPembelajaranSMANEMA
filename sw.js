@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jurnal-smanema-v1';
+const CACHE_NAME = 'jurnal-smanema-v2';
 
 // Daftar file yang akan disimpan permanen di HP
 const ASSETS_TO_CACHE = [
