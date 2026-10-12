@@ -132,51 +132,69 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="auth.js"></script>
 
- <!-- SCRIPT KHUSUS UNTUK INSTALL PWA -->
+<!-- SCRIPT KHUSUS UNTUK INSTALL PWA & UPDATE OTOMATIS -->
     <script>
+        let newWorker;
+        const installContainer = document.getElementById('installContainer');
+        const installBtn = document.getElementById('installAppBtn');
+        let deferredPrompt = null;
+
         // 1. Daftarkan Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=4').then(reg => {
-                    console.log('PWA Service Worker registered.');
-                });
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('PWA Service Worker registered.', reg);
+                    
+                    // Deteksi jika ada pembaruan kode dari GitHub
+                    reg.addEventListener('updatefound', () => {
+                        newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // Paksa Service Worker baru untuk langsung bekerja (SKIP_WAITING)
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        });
+                    });
+                }).catch(err => console.error('PWA SW Registration failed:', err));
+            });
+
+            // Refresh halaman otomatis agar tampilan langsung ter-update
+            let refreshing;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                window.location.reload();
+                refreshing = true;
             });
         }
 
-        let deferredPrompt = null;
-        const installContainer = document.getElementById('installContainer');
-        const installBtn = document.getElementById('installAppBtn');
-
-        // Tampilkan tombol 
-        installContainer.style.display = 'block';
-
-        // Jika browser mendukung & memenuhi syarat, simpan event-nya
+        // 2. Tangkap event install dari Browser
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.innerHTML = '📲 Install Aplikasi di HP (Siap!)';
+            // Tampilkan tombol karena browser sudah siap
+            installContainer.style.display = 'block';
+            installBtn.innerHTML = '📲 Install Aplikasi di HP';
         });
 
-        // Logika saat tombol ditekan
+        // 3. Logika ketika tombol install diklik
         installBtn.addEventListener('click', async () => {
             if (deferredPrompt !== null) {
-                // Munculkan dialog instalasi dari HP
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
+                    console.log('User menginstal aplikasi');
                     installContainer.style.display = 'none';
                 }
                 deferredPrompt = null;
             } else {
-                // JIKA TOMBOL MATI / DIBLOKIR BROWSER, TAMPILKAN PESAN INI:
-                alert("Instalasi otomatis dicegah oleh sistem.\n\nSOLUSI:\n1. Buka web ini MURNI lewat aplikasi Google Chrome (Jangan dari klik link WhatsApp/IG).\n2. Jika Anda menggunakan iPhone, ketuk tombol 'Bagikan' (Share) di bawah, lalu pilih 'Tambahkan ke Layar Utama'.\n3. Coba cek daftar aplikasi di HP Anda, mungkin Jurnal SMANEMA sudah terinstal.");
+                alert("Instalasi tidak dapat dilakukan saat ini.\n\nPastikan Anda membukanya di Google Chrome asli dan bukan dari link WhatsApp/Sosmed.");
             }
         });
 
-        // Sembunyikan tombol jika sudah berhasil diinstal
+        // Sembunyikan tombol setelah berhasil
         window.addEventListener('appinstalled', () => {
             installContainer.style.display = 'none';
-            alert("Aplikasi berhasil diinstal di perangkat Anda!");
+            alert("Aplikasi SMANEMA berhasil diinstal!");
         });
     </script>
 </body>
