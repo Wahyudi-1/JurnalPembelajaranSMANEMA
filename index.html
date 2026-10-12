@@ -2,28 +2,31 @@
 <html lang="id">
 <head>
     <!-- ========================================================= -->
-    <!-- METADATA & KONFIGURASI HALAMAN                             -->
+    <!-- METADATA & KONFIGURASI HALAMAN                            -->
     <!-- ========================================================== -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Jurnal & Disiplin SMAN 1 Manyar</title>
 
+    <!-- KONFIGURASI PWA UNTUK LAYAR PENUH (FULLSCREEN) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Jurnal SMANEMA">
+
     <!-- ========================================================== -->
     <!-- STYLESHEETS & FONTS                                        -->
     <!-- ========================================================== -->
-    
-    <!-- 1. Google Fonts (Poppins) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- 2. Main Stylesheet (style.css) -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- 3. Favicon Sekolah -->
+    <!-- Favicon Sekolah -->
     <link rel="icon" href="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png">
-    <meta name="apple-mobile-web-app-title" content="Jurnal Guru">        
 </head>
 
 <body class="login-page-v2">
@@ -56,7 +59,6 @@
                 <h2 class="logo">Selamat Datang</h2>
                 <p style="color: var(--text-light); margin-bottom: 25px;">Silakan masuk untuk melanjutkan.</p>
                 
-                <!-- Catatan: atribut 'onsubmit' dihapus karena event listener ditambahkan melalui JavaScript (praktik terbaik) -->
                 <form>
                     <div class="form-group">
                         <label for="username">Email</label>
@@ -78,6 +80,13 @@
                     <div class="form-group" style="text-align: center; margin-top: 1rem;">
                         <a href="#" id="forgotPasswordLink" style="color: var(--primary-color); text-decoration: none; font-size: 0.9em;">Lupa Password?</a>
                     </div>
+                    
+                    <!-- TOMBOL INSTALL APLIKASI (DISEMBUNYIKAN SECARA DEFAULT) -->
+                    <div class="form-group" style="text-align: center; margin-top: 2rem;">
+                        <button type="button" id="installAppBtn" class="btn" style="display: none; background-color: #2ecc71; color: white; width: 100%; font-weight: 600;">
+                            📲 Install Aplikasi di HP
+                        </button>
+                    </div>
 
                 </form>
                 
@@ -93,7 +102,6 @@
     <div id="resetPasswordContainer" class="login-box" style="display: none;">
         <div class="login-form-container" style="grid-column: 1 / -1;">
             <div class="login-form-content">
-                
                 <h2 class="logo">Atur Password Baru</h2>
                 <p style="color: var(--text-light); margin-bottom: 25px;">Anda sedang dalam mode pemulihan akun. Silakan masukkan password baru Anda.</p>
                 
@@ -110,25 +118,59 @@
             </div>
         </div>
     </div>
-    <!-- Akhir dari Reset Password Container -->
 
-
-    <!-- ========================================================== -->
-    <!-- ELEMEN GLOBAL (LOADING OVERLAY)                            -->
-    <!-- ========================================================== -->
+    <!-- ELEMEN GLOBAL (LOADING OVERLAY) -->
     <div id="loadingIndicator" class="loading-overlay" style="display: none;">
         <div class="spinner"></div>
     </div>
 
-    <!-- ========================================================== -->
-    <!-- JAVASCRIPT LIBRARIES & SCRIPT                              -->
-    <!-- ========================================================== -->
-    
     <!-- Library untuk Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- [PERBAIKAN] Script spesifik untuk halaman otentikasi/login -->
     <script src="auth.js"></script>
 
+    <!-- SCRIPT KHUSUS UNTUK INSTALL PWA -->
+    <script>
+        // 1. Daftarkan Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('PWA Service Worker registered.', reg);
+                }).catch(err => console.error('PWA SW Registration failed:', err));
+            });
+        }
+
+        // 2. Tangkap event install dari Browser
+        let deferredPrompt;
+        const installBtn = document.getElementById('installAppBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Mencegah banner default browser muncul
+            e.preventDefault();
+            // Simpan event untuk dipicu nanti saat tombol diklik
+            deferredPrompt = e;
+            // Munculkan tombol Install buatan kita
+            installBtn.style.display = 'block';
+        });
+
+        // 3. Logika ketika tombol install diklik
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt !== null) {
+                // Munculkan pop-up install native dari HP
+                deferredPrompt.prompt();
+                // Tunggu respon user
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('User menginstal aplikasi');
+                    installBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        // Sembunyikan tombol jika sudah berhasil diinstal
+        window.addEventListener('appinstalled', () => {
+            installBtn.style.display = 'none';
+        });
+    </script>
 </body>
 </html>
