@@ -2,8 +2,8 @@
  * =================================================================
  * SCRIPT UTAMA DASHBOARD ADMIN - SISTEM JURNAL & DISIPLIN SMANEMA
  * =================================================================
- * @version 7.3 - Aktivasi Penuh editJurnalHandler & editDisiplinHandler,
- *                Sortir Tabel, Hapus Semua Data, dan Smart Upsert
+ * @version 8.0 - Full Admin Management Tools (Unduh Template, Import CSV,
+ *                Export Excel & Refresh Data di Seluruh Menu Admin)
  */
 
 // ====================================================================
@@ -72,10 +72,6 @@ function populateDropdown(selectElementId, data, valueField, textField, defaultO
     });
 }
 
-/**
- * Memastikan nilai option tersedia di dalam elemen <select>
- * (Berguna saat Admin mengedit jurnal guru lain yang kelas/mapelnya berbeda)
- */
 function ensureSelectOption(selectElementId, value, text) {
     const select = document.getElementById(selectElementId);
     if (!select || !value) return;
@@ -89,9 +85,6 @@ function ensureSelectOption(selectElementId, value, text) {
     select.value = value;
 }
 
-/**
- * Berpindah antar section dashboard secara terprogram
- */
 function switchSection(sectionId) {
     document.querySelectorAll('.dashboard-content .content-section').forEach(s => {
         s.style.display = 'none';
@@ -102,6 +95,61 @@ function switchSection(sectionId) {
     document.querySelectorAll('.sidebar-nav .btn-nav').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.section === sectionId);
     });
+}
+
+/**
+ * Helper Universal untuk Mengunduh File Template CSV
+ */
+function downloadCSVFile(filename, csvContent) {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showStatusMessage(`Template ${filename} berhasil diunduh.`, 'success');
+}
+
+/**
+ * Helper Universal untuk Mengekspor Array JSON ke File Excel (.xlsx)
+ */
+function exportJSONToExcel(dataArray, sheetName, filePrefix) {
+    if (!dataArray || dataArray.length === 0) {
+        return showStatusMessage(`Tidak ada data ${sheetName} untuk diekspor.`, 'info');
+    }
+    const worksheet = XLSX.utils.json_to_sheet(dataArray);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    XLSX.writeFile(workbook, `${filePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+/**
+ * Helper Pencari ID Guru berdasarkan Nama Lengkap atau Email (Case-Insensitive)
+ */
+function findTeacherIdByNameOrEmail(identifier) {
+    if (!identifier) return null;
+    const clean = String(identifier).trim().toLowerCase();
+
+    // 1. Cari di daftar guru (AppState.teachers)
+    const fromTeachers = AppState.teachers.find(
+        t => (t.full_name && t.full_name.trim().toLowerCase() === clean) || String(t.id).toLowerCase() === clean
+    );
+    if (fromTeachers) return fromTeachers.id;
+
+    // 2. Cari di daftar seluruh pengguna (AppState.allUsers) berdasarkan nama atau email
+    const fromAllUsers = AppState.allUsers.find(
+        u => (u.full_name && u.full_name.trim().toLowerCase() === clean) ||
+             (u.email && u.email.trim().toLowerCase() === clean) ||
+             String(u.id).toLowerCase() === clean
+    );
+    if (fromAllUsers) return fromAllUsers.id;
+
+    return null;
 }
 
 /**
@@ -135,9 +183,6 @@ async function smartUpsert(tableName, payload, matchColumns, pkColumn = 'id') {
     }
 }
 
-/**
- * Konversi String Tanggal Indonesia (DD/MM/YYYY) atau ISO ke Timestamp untuk Sortir
- */
 function parseDateValue(dateStr) {
     if (!dateStr) return 0;
     const cleanStr = dateStr.trim();
@@ -151,9 +196,6 @@ function parseDateValue(dateStr) {
     return new Date(cleanStr).getTime() || 0;
 }
 
-/**
- * Inisialisasi Pengurutan Kolom Tabel Secara Universal
- */
 function initSortableTables() {
     const urutanHari = {
         'senin': 1, 'selasa': 2, 'rabu': 3,
@@ -415,7 +457,6 @@ async function handleJurnalSubmit(event) {
         catatan: document.getElementById('jurnalCatatan').value.trim(),
     };
 
-    // Jika sedang mode edit oleh Admin, pertahankan guru_id asli pemilik jurnal
     if (jurnalIdToUpdate) {
         const originalJurnal = AppState.allJurnalHistory.find(j => String(j.id) === String(jurnalIdToUpdate));
         if (originalJurnal && originalJurnal.guru_id) {
@@ -477,30 +518,22 @@ async function handleJurnalSubmit(event) {
     resetJurnalForm();
 }
 
-/**
- * FUNGSI AKTIF: Ubah Data Jurnal Pembelajaran & Restore Presensi Siswa
- */
 window.editJurnalHandler = async function(jurnalId) {
     const jurnal = AppState.allJurnalHistory.find(j => String(j.id) === String(jurnalId));
     if (!jurnal) return showStatusMessage('Data jurnal tidak ditemukan.', 'error');
 
-    // 1. Pindah ke tampilan form Input Jurnal
     switchSection('jurnalSection');
 
-    // 2. Set ID Jurnal yang sedang diedit
     const idInput = document.getElementById('jurnalIdToUpdate');
     if (idInput) idInput.value = jurnal.id;
 
-    // 3. Pastikan opsi Kelas & Mapel tersedia di dropdown lalu pilih
     ensureSelectOption('jurnalKelas', jurnal.kelas, jurnal.kelas);
     ensureSelectOption('jurnalMapel', jurnal.mata_pelajaran, jurnal.mata_pelajaran);
 
-    // 4. Set Tanggal (format YYYY-MM-DD) & Materi
     const formattedDate = jurnal.tanggal ? String(jurnal.tanggal).slice(0, 10) : '';
     document.getElementById('jurnalTanggal').value = formattedDate;
     document.getElementById('jurnalMateri').value = jurnal.materi || '';
 
-    // 5. Pisahkan Catatan Guru dengan Daftar Presensi Tidak Hadir
     const marker = '--- PRESENSI TIDAK HADIR ---';
     let catatanMurni = jurnal.catatan || '';
     const presensiTidakHadirMap = {};
@@ -510,7 +543,7 @@ window.editJurnalHandler = async function(jurnalId) {
         catatanMurni = parts[0].trim();
         const lines = (parts[1] || '').trim().split('\n');
         lines.forEach(line => {
-            const match = line.trim().match(/^(.*)\s+\((Hadir\vert{}Sakit\vert{}Izin\vert{}Alfa)\)$/i);
+            const match = line.trim().match(/^(.*)\s+\((Hadir|Sakit|Izin|Alfa)\)$/i);
             if (match) {
                 const namaSiswaKey = match[1].trim().toLowerCase();
                 const statusKehadiran = match[2].charAt(0).toUpperCase() + match[2].slice(1).toLowerCase();
@@ -520,7 +553,6 @@ window.editJurnalHandler = async function(jurnalId) {
     }
     document.getElementById('jurnalCatatan').value = catatanMurni;
 
-    // 6. Muat daftar siswa kelas tersebut dan kembalikan status presensinya
     await loadSiswaForJurnal();
     document.querySelectorAll('#presensiTableBody tr').forEach(row => {
         const namaSiswa = (row.dataset.nama || '').trim().toLowerCase();
@@ -530,7 +562,6 @@ window.editJurnalHandler = async function(jurnalId) {
         }
     });
 
-    // 7. Ubah teks tombol submit & tampilkan tombol Batal Ubah
     const submitBtn = document.getElementById('submitJurnalButton');
     if (submitBtn) {
         submitBtn.textContent = 'Update Jurnal & Presensi';
@@ -654,10 +685,7 @@ function exportRiwayatToExcel() {
         Catatan: j.catatan
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Jurnal");
-    XLSX.writeFile(workbook, `Riwayat_Jurnal_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    exportJSONToExcel(formattedData, "Riwayat Jurnal", "Riwayat_Jurnal");
 }
 
 // ====================================================================
@@ -733,7 +761,6 @@ async function handleDisiplinSubmit(event) {
     let error = null;
 
     if (disiplinIdToUpdate) {
-        // Pertahankan pencatat_id asli jika sedang diedit oleh Admin
         const originalCatatan = AppState.allDisiplinHistory.find(d => String(d.id) === String(disiplinIdToUpdate));
         if (originalCatatan && originalCatatan.pencatat_id) {
             disiplinData.pencatat_id = originalCatatan.pencatat_id;
@@ -754,17 +781,12 @@ async function handleDisiplinSubmit(event) {
     resetDisiplinForm();
 }
 
-/**
- * FUNGSI AKTIF: Ubah Data Catatan Disiplin Siswa
- */
 window.editDisiplinHandler = function(catatanId) {
     const catatan = AppState.allDisiplinHistory.find(d => String(d.id) === String(catatanId));
     if (!catatan) return showStatusMessage('Data catatan disiplin tidak ditemukan.', 'error');
 
-    // 1. Pindah ke tampilan form Input Disiplin
     switchSection('disiplinSection');
 
-    // 2. Pastikan hidden input #disiplinIdToUpdate tersedia di dalam #formDisiplin
     const formDisiplin = document.getElementById('formDisiplin');
     let idInput = document.getElementById('disiplinIdToUpdate');
     if (!idInput && formDisiplin) {
@@ -775,13 +797,11 @@ window.editDisiplinHandler = function(catatanId) {
     }
     if (idInput) idInput.value = catatan.id;
 
-    // 3. Isi NISN dan Nama Siswa
     const nisn = catatan.nisn_siswa || catatan.siswa?.nisn || '';
     const nama = catatan.siswa?.nama || AppState.students.find(s => s.nisn === nisn)?.nama || '';
     document.getElementById('nisnDisiplinInput').value = nisn;
     document.getElementById('namaSiswaDisiplin').value = nama;
 
-    // 4. Cari dan pilih Jenis Pelanggaran
     const pelanggaranId =
         catatan.id_pelanggaran ||
         catatan.pelanggaran_master?.id ||
@@ -789,7 +809,6 @@ window.editDisiplinHandler = function(catatanId) {
         '';
     document.getElementById('deskripsiDisiplinInput').value = pelanggaranId;
 
-    // 5. Ubah teks tombol submit & tampilkan tombol Batal Ubah
     const submitBtn = document.getElementById('submitDisiplinButton');
     if (submitBtn) {
         submitBtn.textContent = 'Update Catatan Disiplin';
@@ -890,20 +909,9 @@ function applyRiwayatDisiplinFilter() {
 }
 
 // ====================================================================
-// MODUL ADMIN: PENUGASAN, WALI KELAS, PIKET, PENGATURAN
+// MODUL ADMIN 1: MANAJEMEN PENUGASAN GURU (CRUD, TEMPLATE, CSV, EXCEL, REFRESH)
 // ====================================================================
 
-async function handlePengaturanSubmit(e) {
-    e.preventDefault();
-    const wa = document.getElementById('pengaturanWaPiket').value.trim();
-    showLoading(true);
-    const { error } = await supabaseClient.from('pengaturan').upsert({ kunci: 'nomor_wa_piket', nilai: wa });
-    showLoading(false);
-    if(error) return showStatusMessage('Gagal menyimpan pengaturan: ' + error.message, 'error');
-    showStatusMessage('Pengaturan WhatsApp Piket berhasil disimpan!', 'success');
-}
-
-// --- Modul Admin: Penugasan Mengajar ---
 async function handlePenugasanSubmit(event) {
     event.preventDefault();
     const penugasanData = {
@@ -921,10 +929,7 @@ async function handlePenugasanSubmit(event) {
         'success'
     );
     event.target.reset();
-    
-    const { data } = await supabaseClient.from('penugasan_guru').select('*, profiles(full_name)').order('kelas');
-    if(data) AppState.allAssignments = data;
-    loadPenugasanTable();
+    await refreshPenugasanData(false);
 }
 
 function loadPenugasanTable() {
@@ -941,7 +946,7 @@ function loadPenugasanTable() {
             <td data-label="Guru">${a.profiles ? a.profiles.full_name : 'Guru Dihapus'}</td>
             <td data-label="Kelas">${a.kelas}</td>
             <td data-label="Mapel">${a.mata_pelajaran}</td>
-            <td data-label="Aksi"><button class="btn btn-sm btn-danger" onclick="deletePenugasan('${a.id}')">Hapus</button></td>
+            <td data-label="Aksi" style="text-align: right;"><button class="btn btn-sm btn-danger" onclick="deletePenugasan('${a.id}')">Hapus</button></td>
         </tr>
     `).join('');
 }
@@ -954,13 +959,100 @@ window.deletePenugasan = async function(id) {
     
     if (error) return showStatusMessage(`Gagal menghapus: ${error.message}`, 'error');
     showStatusMessage('Penugasan berhasil dihapus.', 'success');
-    
-    const { data } = await supabaseClient.from('penugasan_guru').select('*, profiles(full_name)').order('kelas');
-    if(data) AppState.allAssignments = data;
-    loadPenugasanTable();
+    await refreshPenugasanData(false);
 };
 
-// --- Modul Admin: Wali Kelas ---
+function downloadTemplatePenugasan() {
+    const contohGuru = AppState.teachers[0]?.full_name || "Budi Santoso, S.Pd";
+    const csvContent = `Nama_Guru,Kelas,Mata_Pelajaran\n"${contohGuru}",X-A,Matematika\n"${contohGuru}",X-B,Fisika`;
+    downloadCSVFile("Template_Import_Penugasan.csv", csvContent);
+}
+
+async function refreshPenugasanData(showToast = true) {
+    showLoading(true);
+    const [allRes, myRes, teachersRes] = await Promise.all([
+        supabaseClient.from('penugasan_guru').select('*, profiles(full_name)').order('kelas'),
+        supabaseClient.from('penugasan_guru').select('kelas, mata_pelajaran').eq('guru_id', AppState.user.id),
+        supabaseClient.from('profiles').select('id, full_name').in('role', ['Guru', 'Wali Kelas']).order('full_name')
+    ]);
+    showLoading(false);
+
+    if (allRes.error) return showStatusMessage('Gagal memuat ulang data penugasan.', 'error');
+    if (allRes.data) AppState.allAssignments = allRes.data;
+    if (myRes.data) AppState.assignments = myRes.data;
+    if (teachersRes.data) AppState.teachers = teachersRes.data;
+
+    loadPenugasanTable();
+    populateInitialDropdowns();
+    if (showToast) showStatusMessage('Data penugasan guru berhasil dimuat ulang.', 'success');
+}
+
+function exportPenugasanToExcel() {
+    const formatted = AppState.allAssignments.map(a => ({
+        'Nama Guru': a.profiles?.full_name || 'Guru Dihapus',
+        'Kelas': a.kelas,
+        'Mata Pelajaran': a.mata_pelajaran
+    }));
+    exportJSONToExcel(formatted, "Data Penugasan", "Data_Penugasan_Guru");
+}
+
+function handlePenugasanImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    showLoading(true);
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async function(results) {
+            let successCount = 0;
+            let skipCount = 0;
+
+            for (const row of results.data) {
+                const namaGuru = (row.Nama_Guru || row.nama_guru || row.Guru || row.guru || row.Email || row.email || '').trim();
+                const kelas = (row.Kelas || row.kelas || '').trim();
+                const mapel = (row.Mata_Pelajaran || row.mata_pelajaran || row.Mapel || row.mapel || '').trim();
+
+                if (!namaGuru || !kelas || !mapel) {
+                    skipCount++;
+                    continue;
+                }
+
+                const guruId = findTeacherIdByNameOrEmail(namaGuru);
+                if (!guruId) {
+                    skipCount++;
+                    continue;
+                }
+
+                const { error } = await smartUpsert('penugasan_guru', {
+                    guru_id: guruId,
+                    kelas: kelas,
+                    mata_pelajaran: mapel
+                }, ['kelas', 'mata_pelajaran']);
+
+                if (!error) successCount++;
+                else skipCount++;
+            }
+
+            showLoading(false);
+            await refreshPenugasanData(false);
+            showStatusMessage(
+                `Import Penugasan selesai: ${successCount} berhasil disimpan, ${skipCount} dilewati (pastikan Nama Guru sesuai dengan akun terdaftar).`,
+                successCount > 0 ? 'success' : 'error'
+            );
+        },
+        error: function(err) {
+            showLoading(false);
+            showStatusMessage(`Gagal membaca file CSV: ${err.message}`, 'error');
+        }
+    });
+    event.target.value = '';
+}
+
+// ====================================================================
+// MODUL ADMIN 2: MANAJEMEN WALI KELAS (CRUD, TEMPLATE, CSV, EXCEL, REFRESH)
+// ====================================================================
+
 async function handleWaliKelasSubmit(e) {
     e.preventDefault();
     const waliData = { 
@@ -979,10 +1071,7 @@ async function handleWaliKelasSubmit(e) {
         'success'
     ); 
     e.target.reset();
-    
-    const { data } = await supabaseClient.from('wali_kelas').select('*, profiles(full_name)').order('kelas');
-    if(data) AppState.allWaliKelas = data; 
-    loadWaliKelasTable();
+    await refreshWaliKelasData(false);
 }
 
 function loadWaliKelasTable() {
@@ -996,7 +1085,7 @@ function loadWaliKelasTable() {
         <tr>
             <td data-label="Nama Wali Kelas">${w.profiles ? w.profiles.full_name : 'Guru Dihapus dari Sistem'}</td>
             <td data-label="Kelas">${w.kelas}</td>
-            <td data-label="Aksi">
+            <td data-label="Aksi" style="text-align: right;">
                 <button class="btn btn-sm btn-danger" onclick="deleteWaliKelas('${w.id}')">Hapus</button>
             </td>
         </tr>
@@ -1008,240 +1097,92 @@ window.deleteWaliKelas = async function(id) {
     showLoading(true); 
     await supabaseClient.from('wali_kelas').delete().eq('id', id); 
     showLoading(false);
-    
-    const { data } = await supabaseClient.from('wali_kelas').select('*, profiles(full_name)').order('kelas');
-    if(data) AppState.allWaliKelas = data; 
+    await refreshWaliKelasData(false);
+};
+
+function downloadTemplateWaliKelas() {
+    const contohGuru = AppState.teachers[0]?.full_name || "Siti Aminah, S.Pd";
+    const csvContent = `Nama_Guru,Kelas\n"${contohGuru}",X-A\n"${contohGuru}",XI-A`;
+    downloadCSVFile("Template_Import_Wali_Kelas.csv", csvContent);
+}
+
+async function refreshWaliKelasData(showToast = true) {
+    showLoading(true);
+    const { data, error } = await supabaseClient.from('wali_kelas').select('*, profiles(full_name)').order('kelas');
+    showLoading(false);
+
+    if (error) return showStatusMessage('Gagal memuat ulang data wali kelas.', 'error');
+    if (data) AppState.allWaliKelas = data;
     loadWaliKelasTable();
-};
-
-// --- Modul Admin: Jadwal Guru Piket ---
-async function handlePiketSubmit(e) {
-    e.preventDefault();
-    const dataPiket = {
-        nama_guru: document.getElementById('piketNamaGuru').value.trim(),
-        nomor_wa: document.getElementById('piketNoWa').value.trim(),
-        hari: document.getElementById('piketHari').value
-    };
-    
-    showLoading(true);
-    const { error, action } = await smartUpsert('jadwal_piket', dataPiket, ['hari', 'nama_guru']);
-    showLoading(false);
-    
-    if (error) return showStatusMessage(`Gagal menyimpan jadwal: ${error.message}`, 'error');
-    showStatusMessage(
-        action === 'updated' ? 'Jadwal piket guru tersebut berhasil diperbarui (ditimpa)!' : 'Jadwal piket berhasil ditambahkan!',
-        'success'
-    );
-    e.target.reset();
-    
-    const { data } = await supabaseClient.from('jadwal_piket').select('*').order('hari');
-    if (data) AppState.allPiket = data;
-    loadPiketTable();
+    if (showToast) showStatusMessage('Data wali kelas berhasil dimuat ulang.', 'success');
 }
 
-function loadPiketTable() {
-    const tableBody = document.getElementById('piketTableBody');
-    if (!tableBody) return;
-    if (AppState.allPiket.length === 0) {
-        return tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Belum ada jadwal piket.</td></tr>';
-    }
-    
-    const urutanHari = { "Senin": 1, "Selasa": 2, "Rabu": 3, "Kamis": 4, "Jumat": 5, "Sabtu": 6, "Minggu": 7 };
-    const sortedPiket = [...AppState.allPiket].sort((a, b) => urutanHari[a.hari] - urutanHari[b.hari]);
-
-    tableBody.innerHTML = sortedPiket.map(p => `
-        <tr>
-            <td data-label="Hari" style="font-weight:600;">${p.hari}</td>
-            <td data-label="Nama Guru">${p.nama_guru}</td>
-            <td data-label="WhatsApp">+${p.nomor_wa}</td>
-            <td data-label="Aksi">
-                <button class="btn btn-sm btn-danger" onclick="deletePiket('${p.id}')">Hapus</button>
-            </td>
-        </tr>
-    `).join('');
+function exportWaliKelasToExcel() {
+    const formatted = AppState.allWaliKelas.map(w => ({
+        'Nama Wali Kelas': w.profiles?.full_name || 'Guru Dihapus',
+        'Kelas yang Diampu': w.kelas
+    }));
+    exportJSONToExcel(formatted, "Data Wali Kelas", "Data_Wali_Kelas");
 }
 
-window.deletePiket = async function(id) {
-    if (!confirm('Apakah Anda yakin ingin menghapus jadwal piket ini?')) return;
-    showLoading(true); 
-    await supabaseClient.from('jadwal_piket').delete().eq('id', id); 
-    showLoading(false);
-    
-    showStatusMessage('Jadwal berhasil dihapus.', 'success');
-    const { data } = await supabaseClient.from('jadwal_piket').select('*').order('hari');
-    if (data) AppState.allPiket = data; 
-    loadPiketTable();
-};
-
-// --- Modul Admin: Pengguna ---
-async function handlePenggunaSubmit(event) {
-    event.preventDefault();
-    let userIdToUpdate = document.getElementById('formUserIdToUpdate').value;
-    const nama = document.getElementById('formNamaPengguna').value.trim();
-    const email = document.getElementById('formEmailPengguna').value.trim();
-    const password = document.getElementById('formPasswordPengguna').value;
-    const role = document.getElementById('formPeran').value;
-
-    if (!userIdToUpdate && AppState.allUsers.length > 0) {
-        const existingUser = AppState.allUsers.find(
-            u => u.email && u.email.toLowerCase() === email.toLowerCase()
-        );
-        if (existingUser) {
-            userIdToUpdate = existingUser.id;
-        }
-    }
+function handleWaliKelasImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
     showLoading(true);
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async function(results) {
+            let successCount = 0;
+            let skipCount = 0;
 
-    if (userIdToUpdate) {
-        if (password && password.length < 6) {
-            showLoading(false);
-            return showStatusMessage('Password baru minimal 6 karakter.', 'error');
-        }
+            for (const row of results.data) {
+                const namaGuru = (row.Nama_Guru || row.nama_guru || row.Nama_Wali_Kelas || row.Guru || row.guru || '').trim();
+                const kelas = (row.Kelas || row.kelas || '').trim();
 
-        const { error } = await supabaseClient.rpc('admin_update_user', {
-            target_id: userIdToUpdate,
-            new_email: email,
-            new_password: password || null,
-            new_full_name: nama,
-            new_role: role
-        });
+                if (!namaGuru || !kelas) {
+                    skipCount++;
+                    continue;
+                }
 
-        showLoading(false);
-        if (error) return showStatusMessage(`Gagal update pengguna: ${error.message}`, 'error');
-        showStatusMessage('Data pengguna berhasil diperbarui (ditimpa).', 'success');
-    } else {
-        if (!password || password.length < 6) {
-            showLoading(false);
-            return showStatusMessage('Password wajib diisi minimal 6 karakter.', 'error');
-        }
+                const guruId = findTeacherIdByNameOrEmail(namaGuru);
+                if (!guruId) {
+                    skipCount++;
+                    continue;
+                }
 
-        const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { 
-                persistSession: false, 
-                autoRefreshToken: false 
+                const { error } = await smartUpsert('wali_kelas', {
+                    guru_id: guruId,
+                    kelas: kelas
+                }, ['kelas']);
+
+                if (!error) successCount++;
+                else skipCount++;
             }
-        });
 
-        const { error } = await tempClient.auth.signUp({
-            email: email,
-            password: password,
-            options: {
-                data: { full_name: nama, role: role }
-            }
-        });
-
-        showLoading(false);
-        if (error) return showStatusMessage(`Gagal membuat pengguna: ${error.message}`, 'error');
-        
-        showStatusMessage(`Pengguna ${email} berhasil dibuat!`, 'success');
-    }
-
-    resetPenggunaForm();
-    loadUsersTable();
+            showLoading(false);
+            await refreshWaliKelasData(false);
+            showStatusMessage(
+                `Import Wali Kelas selesai: ${successCount} berhasil disimpan, ${skipCount} dilewati (pastikan Nama Guru sesuai dengan akun terdaftar).`,
+                successCount > 0 ? 'success' : 'error'
+            );
+        },
+        error: function(err) {
+            showLoading(false);
+            showStatusMessage(`Gagal membaca file CSV: ${err.message}`, 'error');
+        }
+    });
+    event.target.value = '';
 }
 
-async function loadUsersTable() {
-    const tableBody = document.getElementById('penggunaTableBody');
-    if (!tableBody) return;
-    tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Memuat data pengguna...</td></tr>';
-    showLoading(true);
-
-    const { data, error } = await supabaseClient.rpc('get_all_users');
-    showLoading(false);
-
-    if (error) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Gagal memuat pengguna. Anda mungkin bukan Admin.</td></tr>';
-        return showStatusMessage(`Error: ${error.message}`, 'error');
-    }
-    AppState.allUsers = data || [];
-    renderUsersTable(AppState.allUsers);
-}
-
-function renderUsersTable(users) {
-    const tableBody = document.getElementById('penggunaTableBody');
-    const currentUserId = AppState.user.id; 
-
-    if (!users || users.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Belum ada pengguna terdaftar.</td></tr>';
-        return;
-    }
-
-    tableBody.innerHTML = users.map(user => {
-        const isCurrentUser = user.id === currentUserId;
-        const disabledAttr = isCurrentUser ? 'disabled' : '';
-        const escapedFullName = user.full_name ? user.full_name.replace(/'/g, "\\'") : '';
-        const escapedEmail = user.email ? user.email.replace(/'/g, "\\'") : '';
-
-        return `
-            <tr>
-                <td data-label="Nama">${user.full_name || 'N/A'}</td>
-                <td data-label="Email">${user.email}</td>
-                <td data-label="Peran">${user.role}</td>
-                <td data-label="Aksi">
-                    <button class="btn btn-sm btn-secondary" onclick="editUserHandler('${user.id}', '${escapedFullName}', '${escapedEmail}', '${user.role}')" ${disabledAttr}>Ubah</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteUserHandler('${user.id}')" ${disabledAttr}>Hapus</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-window.editUserHandler = function(id, fullName, email, role) {
-    document.getElementById('formUserIdToUpdate').value = id;
-    document.getElementById('formNamaPengguna').value = fullName;
-    document.getElementById('formEmailPengguna').value = email;
-    document.getElementById('formPeran').value = role;
-    
-    const passwordInput = document.getElementById('formPasswordPengguna');
-    passwordInput.placeholder = 'Isi hanya jika ingin mengubah password';
-    passwordInput.required = false;
-
-    document.getElementById('submitPenggunaButton').textContent = 'Update Pengguna';
-    document.getElementById('penggunaSection').scrollIntoView({ behavior: 'smooth' });
-};
-
-window.deleteUserHandler = async function(userId) {
-    if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.')) return;
-    
-    showLoading(true);
-    const { error } = await supabaseClient.rpc('admin_delete_user', { target_user_id: userId });
-    showLoading(false);
-
-    if (error) return showStatusMessage(`Gagal menghapus pengguna: ${error.message}`, 'error');
-
-    showStatusMessage('Pengguna berhasil dihapus.', 'success');
-    loadUsersTable();
-};
-
-function resetPenggunaForm() {
-    document.getElementById('formPengguna').reset();
-    document.getElementById('formUserIdToUpdate').value = '';
-    
-    const passwordInput = document.getElementById('formPasswordPengguna');
-    passwordInput.placeholder = 'Minimal 6 karakter';
-    passwordInput.required = true;
-    
-    document.getElementById('submitPenggunaButton').textContent = 'Buat Pengguna';
-}
-
-// --- Modul Admin: Siswa (CRUD, Download Template & Import/Export) ---
+// ====================================================================
+// MODUL ADMIN 3: MANAJEMEN SISWA (CRUD, TEMPLATE, CSV, EXCEL, REFRESH)
+// ====================================================================
 
 function downloadTemplateSiswa() {
     const csvContent = "NISN,Nama,Kelas\n1234567890,Fulan Bin Fulan,X-A\n0987654321,Siti Aminah,XI-B";
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Template_Import_Siswa.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showStatusMessage('Template CSV berhasil diunduh.', 'success');
+    downloadCSVFile("Template_Import_Siswa.csv", csvContent);
 }
 
 async function refreshSiswaData() {
@@ -1259,12 +1200,7 @@ async function refreshSiswaData() {
 }
 
 function exportSiswaToExcel() {
-    if (AppState.students.length === 0) return showStatusMessage('Tidak ada data siswa untuk diekspor.', 'info');
-    
-    const worksheet = XLSX.utils.json_to_sheet(AppState.students);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Siswa");
-    XLSX.writeFile(workbook, `Data_Siswa_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    exportJSONToExcel(AppState.students, "Data Siswa", "Data_Siswa");
 }
 
 async function handleSiswaImport(event) {
@@ -1321,7 +1257,7 @@ function loadSiswaTable() {
                 <td data-label="NISN">${s.nisn}</td>
                 <td data-label="Nama">${s.nama}</td>
                 <td data-label="Kelas">${s.kelas}</td>
-                <td data-label="Aksi">
+                <td data-label="Aksi" style="text-align: right; white-space: nowrap;">
                     <button class="btn btn-sm btn-secondary" onclick="editSiswaHandler('${s.nisn}')">Ubah</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteSiswaHandler('${s.nisn}')">Hapus</button>
                 </td>
@@ -1389,6 +1325,400 @@ window.deleteSiswaHandler = async function(nisn) {
     AppState.students = AppState.students.filter(s => s.nisn !== nisn);
     loadSiswaTable();
 };
+
+// ====================================================================
+// MODUL ADMIN 4: MANAJEMEN PENGGUNA (CRUD, TEMPLATE, CSV, EXCEL, REFRESH)
+// ====================================================================
+
+async function handlePenggunaSubmit(event) {
+    event.preventDefault();
+    let userIdToUpdate = document.getElementById('formUserIdToUpdate').value;
+    const nama = document.getElementById('formNamaPengguna').value.trim();
+    const email = document.getElementById('formEmailPengguna').value.trim();
+    const password = document.getElementById('formPasswordPengguna').value;
+    const role = document.getElementById('formPeran').value;
+
+    if (!userIdToUpdate && AppState.allUsers.length > 0) {
+        const existingUser = AppState.allUsers.find(
+            u => u.email && u.email.toLowerCase() === email.toLowerCase()
+        );
+        if (existingUser) {
+            userIdToUpdate = existingUser.id;
+        }
+    }
+
+    showLoading(true);
+
+    if (userIdToUpdate) {
+        if (password && password.length < 6) {
+            showLoading(false);
+            return showStatusMessage('Password baru minimal 6 karakter.', 'error');
+        }
+
+        const { error } = await supabaseClient.rpc('admin_update_user', {
+            target_id: userIdToUpdate,
+            new_email: email,
+            new_password: password || null,
+            new_full_name: nama,
+            new_role: role
+        });
+
+        showLoading(false);
+        if (error) return showStatusMessage(`Gagal update pengguna: ${error.message}`, 'error');
+        showStatusMessage('Data pengguna berhasil diperbarui (ditimpa).', 'success');
+    } else {
+        if (!password || password.length < 6) {
+            showLoading(false);
+            return showStatusMessage('Password wajib diisi minimal 6 karakter.', 'error');
+        }
+
+        const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false }
+        });
+
+        const { error } = await tempClient.auth.signUp({
+            email: email,
+            password: password,
+            options: { data: { full_name: nama, role: role } }
+        });
+
+        showLoading(false);
+        if (error) return showStatusMessage(`Gagal membuat pengguna: ${error.message}`, 'error');
+        
+        showStatusMessage(`Pengguna ${email} berhasil dibuat!`, 'success');
+    }
+
+    resetPenggunaForm();
+    await refreshPenggunaData(false);
+}
+
+async function loadUsersTable() {
+    const tableBody = document.getElementById('penggunaTableBody');
+    if (!tableBody) return;
+    tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Memuat data pengguna...</td></tr>';
+    showLoading(true);
+
+    const { data, error } = await supabaseClient.rpc('get_all_users');
+    showLoading(false);
+
+    if (error) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Gagal memuat pengguna. Anda mungkin bukan Admin.</td></tr>';
+        return showStatusMessage(`Error: ${error.message}`, 'error');
+    }
+    AppState.allUsers = data || [];
+    renderUsersTable(AppState.allUsers);
+}
+
+function renderUsersTable(users) {
+    const tableBody = document.getElementById('penggunaTableBody');
+    const currentUserId = AppState.user.id; 
+
+    if (!users || users.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Belum ada pengguna terdaftar.</td></tr>';
+        return;
+    }
+
+    tableBody.innerHTML = users.map(user => {
+        const isCurrentUser = user.id === currentUserId;
+        const disabledAttr = isCurrentUser ? 'disabled' : '';
+        const escapedFullName = user.full_name ? user.full_name.replace(/'/g, "\\'") : '';
+        const escapedEmail = user.email ? user.email.replace(/'/g, "\\'") : '';
+
+        return `
+            <tr>
+                <td data-label="Nama">${user.full_name || 'N/A'}</td>
+                <td data-label="Email">${user.email}</td>
+                <td data-label="Peran">${user.role}</td>
+                <td data-label="Aksi" style="text-align: right; white-space: nowrap;">
+                    <button class="btn btn-sm btn-secondary" onclick="editUserHandler('${user.id}', '${escapedFullName}', '${escapedEmail}', '${user.role}')" ${disabledAttr}>Ubah</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteUserHandler('${user.id}')" ${disabledAttr}>Hapus</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.editUserHandler = function(id, fullName, email, role) {
+    document.getElementById('formUserIdToUpdate').value = id;
+    document.getElementById('formNamaPengguna').value = fullName;
+    document.getElementById('formEmailPengguna').value = email;
+    document.getElementById('formPeran').value = role;
+    
+    const passwordInput = document.getElementById('formPasswordPengguna');
+    passwordInput.placeholder = 'Isi hanya jika ingin mengubah password';
+    passwordInput.required = false;
+
+    document.getElementById('submitPenggunaButton').textContent = 'Update Pengguna';
+    document.getElementById('penggunaSection').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.deleteUserHandler = async function(userId) {
+    if (!confirm('Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.')) return;
+    
+    showLoading(true);
+    const { error } = await supabaseClient.rpc('admin_delete_user', { target_user_id: userId });
+    showLoading(false);
+
+    if (error) return showStatusMessage(`Gagal menghapus pengguna: ${error.message}`, 'error');
+
+    showStatusMessage('Pengguna berhasil dihapus.', 'success');
+    await refreshPenggunaData(false);
+};
+
+function resetPenggunaForm() {
+    document.getElementById('formPengguna').reset();
+    document.getElementById('formUserIdToUpdate').value = '';
+    
+    const passwordInput = document.getElementById('formPasswordPengguna');
+    passwordInput.placeholder = 'Minimal 6 karakter';
+    passwordInput.required = true;
+    
+    document.getElementById('submitPenggunaButton').textContent = 'Buat Pengguna';
+}
+
+function downloadTemplatePengguna() {
+    const csvContent = "Nama_Lengkap,Email,Password,Peran\n\"Budi Santoso, S.Pd\",budi@smanema.sch.id,guru12345,Guru\n\"Siti Aminah, S.Pd\",siti@smanema.sch.id,wali12345,Wali Kelas";
+    downloadCSVFile("Template_Import_Pengguna.csv", csvContent);
+}
+
+async function refreshPenggunaData(showToast = true) {
+    await loadUsersTable();
+    const { data: teachersData } = await supabaseClient
+        .from('profiles')
+        .select('id, full_name')
+        .in('role', ['Guru', 'Wali Kelas'])
+        .order('full_name');
+    if (teachersData) {
+        AppState.teachers = teachersData;
+        populateInitialDropdowns();
+    }
+    if (showToast) showStatusMessage('Data pengguna berhasil dimuat ulang.', 'success');
+}
+
+function exportPenggunaToExcel() {
+    const formatted = AppState.allUsers.map(u => ({
+        'Nama Lengkap': u.full_name || 'N/A',
+        'Email': u.email || '',
+        'Peran': u.role || ''
+    }));
+    exportJSONToExcel(formatted, "Data Pengguna", "Data_Pengguna_Sistem");
+}
+
+function handlePenggunaImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    showLoading(true);
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async function(results) {
+            let successCount = 0;
+            let failCount = 0;
+
+            const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                auth: { persistSession: false, autoRefreshToken: false }
+            });
+
+            for (const row of results.data) {
+                const nama = String(row.Nama_Lengkap || row.nama_lengkap || row.Nama || row.nama || '').trim();
+                const email = String(row.Email || row.email || '').trim();
+                const password = String(row.Password || row.password || '').trim();
+                const role = String(row.Peran || row.peran || row.Role || row.role || 'Guru').trim();
+
+                if (!nama || !email) {
+                    failCount++;
+                    continue;
+                }
+
+                const existingUser = AppState.allUsers.find(
+                    u => u.email && u.email.toLowerCase() === email.toLowerCase()
+                );
+
+                if (existingUser) {
+                    const { error } = await supabaseClient.rpc('admin_update_user', {
+                        target_id: existingUser.id,
+                        new_email: email,
+                        new_password: password.length >= 6 ? password : null,
+                        new_full_name: nama,
+                        new_role: role
+                    });
+                    if (!error) successCount++;
+                    else failCount++;
+                } else {
+                    if (password.length < 6) {
+                        failCount++;
+                        continue;
+                    }
+                    const { error } = await tempClient.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: { data: { full_name: nama, role: role } }
+                    });
+                    if (!error) successCount++;
+                    else failCount++;
+                }
+            }
+
+            showLoading(false);
+            await refreshPenggunaData(false);
+            showStatusMessage(
+                `Import Pengguna selesai: ${successCount} akun diproses, ${failCount} gagal/dilewati.`,
+                successCount > 0 ? 'success' : 'error'
+            );
+        },
+        error: function(err) {
+            showLoading(false);
+            showStatusMessage(`Gagal membaca file CSV: ${err.message}`, 'error');
+        }
+    });
+    event.target.value = '';
+}
+
+// ====================================================================
+// MODUL ADMIN 5: JADWAL GURU PIKET (CRUD, TEMPLATE, CSV, EXCEL, REFRESH)
+// ====================================================================
+
+async function handlePiketSubmit(e) {
+    e.preventDefault();
+    const dataPiket = {
+        nama_guru: document.getElementById('piketNamaGuru').value.trim(),
+        nomor_wa: document.getElementById('piketNoWa').value.trim(),
+        hari: document.getElementById('piketHari').value
+    };
+    
+    showLoading(true);
+    const { error, action } = await smartUpsert('jadwal_piket', dataPiket, ['hari', 'nama_guru']);
+    showLoading(false);
+    
+    if (error) return showStatusMessage(`Gagal menyimpan jadwal: ${error.message}`, 'error');
+    showStatusMessage(
+        action === 'updated' ? 'Jadwal piket guru tersebut berhasil diperbarui (ditimpa)!' : 'Jadwal piket berhasil ditambahkan!',
+        'success'
+    );
+    e.target.reset();
+    await refreshPiketData(false);
+}
+
+function loadPiketTable() {
+    const tableBody = document.getElementById('piketTableBody');
+    if (!tableBody) return;
+    if (AppState.allPiket.length === 0) {
+        return tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Belum ada jadwal piket.</td></tr>';
+    }
+    
+    const urutanHari = { "Senin": 1, "Selasa": 2, "Rabu": 3, "Kamis": 4, "Jumat": 5, "Sabtu": 6, "Minggu": 7 };
+    const sortedPiket = [...AppState.allPiket].sort((a, b) => (urutanHari[a.hari] || 99) - (urutanHari[b.hari] || 99));
+
+    tableBody.innerHTML = sortedPiket.map(p => `
+        <tr>
+            <td data-label="Hari" style="font-weight:600;">${p.hari}</td>
+            <td data-label="Nama Guru">${p.nama_guru}</td>
+            <td data-label="WhatsApp">+${p.nomor_wa}</td>
+            <td data-label="Aksi" style="text-align: right;">
+                <button class="btn btn-sm btn-danger" onclick="deletePiket('${p.id}')">Hapus</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+window.deletePiket = async function(id) {
+    if (!confirm('Apakah Anda yakin ingin menghapus jadwal piket ini?')) return;
+    showLoading(true); 
+    await supabaseClient.from('jadwal_piket').delete().eq('id', id); 
+    showLoading(false);
+    
+    showStatusMessage('Jadwal berhasil dihapus.', 'success');
+    await refreshPiketData(false);
+};
+
+function downloadTemplatePiket() {
+    const csvContent = "Hari,Nama_Guru,Nomor_WA\nSenin,\"Bapak Budi, S.Pd\",6281234567890\nSelasa,\"Ibu Siti, S.Pd\",6289876543210";
+    downloadCSVFile("Template_Import_Jadwal_Piket.csv", csvContent);
+}
+
+async function refreshPiketData(showToast = true) {
+    showLoading(true);
+    const { data, error } = await supabaseClient.from('jadwal_piket').select('*').order('hari');
+    showLoading(false);
+
+    if (error) return showStatusMessage('Gagal memuat ulang jadwal piket.', 'error');
+    if (data) AppState.allPiket = data;
+    loadPiketTable();
+    if (showToast) showStatusMessage('Jadwal guru piket berhasil dimuat ulang.', 'success');
+}
+
+function exportPiketToExcel() {
+    const formatted = AppState.allPiket.map(p => ({
+        'Hari': p.hari,
+        'Nama Guru Piket': p.nama_guru,
+        'Nomor WhatsApp': p.nomor_wa
+    }));
+    exportJSONToExcel(formatted, "Jadwal Piket", "Jadwal_Guru_Piket");
+}
+
+function handlePiketImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    showLoading(true);
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async function(results) {
+            let successCount = 0;
+            let skipCount = 0;
+
+            for (const row of results.data) {
+                const rawHari = String(row.Hari || row.hari || '').trim();
+                const namaGuru = String(row.Nama_Guru || row.nama_guru || row.Nama || row.nama || '').trim();
+                let nomorWa = String(row.Nomor_WA || row.nomor_wa || row.WhatsApp || row.whatsapp || '').replace(/[^0-9]/g, '');
+
+                if (nomorWa.startsWith('08')) {
+                    nomorWa = '62' + nomorWa.slice(1);
+                }
+
+                if (!rawHari || !namaGuru || !nomorWa) {
+                    skipCount++;
+                    continue;
+                }
+
+                const hariFormatted = rawHari.charAt(0).toUpperCase() + rawHari.slice(1).toLowerCase();
+
+                const { error } = await smartUpsert('jadwal_piket', {
+                    hari: hariFormatted,
+                    nama_guru: namaGuru,
+                    nomor_wa: nomorWa
+                }, ['hari', 'nama_guru']);
+
+                if (!error) successCount++;
+                else skipCount++;
+            }
+
+            showLoading(false);
+            await refreshPiketData(false);
+            showStatusMessage(
+                `Import Jadwal Piket selesai: ${successCount} berhasil disimpan, ${skipCount} dilewati.`,
+                successCount > 0 ? 'success' : 'error'
+            );
+        },
+        error: function(err) {
+            showLoading(false);
+            showStatusMessage(`Gagal membaca file CSV: ${err.message}`, 'error');
+        }
+    });
+    event.target.value = '';
+}
+
+async function handlePengaturanSubmit(e) {
+    e.preventDefault();
+    const wa = document.getElementById('pengaturanWaPiket').value.trim();
+    showLoading(true);
+    const { error } = await supabaseClient.from('pengaturan').upsert({ kunci: 'nomor_wa_piket', nilai: wa });
+    showLoading(false);
+    if(error) return showStatusMessage('Gagal menyimpan pengaturan: ' + error.message, 'error');
+    showStatusMessage('Pengaturan WhatsApp Piket berhasil disimpan!', 'success');
+}
 
 // ====================================================================
 // MODUL ADMIN: HAPUS SEMUA DATA (PERGANTIAN TAHUN AJARAN BARU)
@@ -1517,6 +1847,7 @@ function setupDashboardListeners() {
         });
     });
 
+    // Form Submissions
     document.getElementById('formJurnal')?.addEventListener('submit', handleJurnalSubmit);
     document.getElementById('formDisiplin')?.addEventListener('submit', handleDisiplinSubmit);
     document.getElementById('formPenugasan')?.addEventListener('submit', handlePenugasanSubmit);
@@ -1524,18 +1855,48 @@ function setupDashboardListeners() {
     document.getElementById('formPengguna')?.addEventListener('submit', handlePenggunaSubmit);
     document.getElementById('formPiket')?.addEventListener('submit', handlePiketSubmit);
     document.getElementById('formPengaturan')?.addEventListener('submit', handlePengaturanSubmit);
-    
     document.getElementById('formSiswa')?.addEventListener('submit', saveSiswaHandler);
+
+    // Reset Buttons
     document.getElementById('resetSiswaButton')?.addEventListener('click', resetFormSiswa);
     document.getElementById('resetPenggunaButton')?.addEventListener('click', resetPenggunaForm);
     
-    document.getElementById('refreshSiswaButton')?.addEventListener('click', refreshSiswaData);
-    document.getElementById('exportSiswaButton')?.addEventListener('click', exportSiswaToExcel);
+    // 1. Listeners Admin: Penugasan Guru
+    document.getElementById('downloadTemplatePenugasanButton')?.addEventListener('click', downloadTemplatePenugasan);
+    document.getElementById('importPenugasanButton')?.addEventListener('click', () => document.getElementById('importPenugasanInput').click());
+    document.getElementById('importPenugasanInput')?.addEventListener('change', handlePenugasanImport);
+    document.getElementById('exportPenugasanButton')?.addEventListener('click', exportPenugasanToExcel);
+    document.getElementById('refreshPenugasanButton')?.addEventListener('click', () => refreshPenugasanData(true));
+
+    // 2. Listeners Admin: Wali Kelas
+    document.getElementById('downloadTemplateWaliKelasButton')?.addEventListener('click', downloadTemplateWaliKelas);
+    document.getElementById('importWaliKelasButton')?.addEventListener('click', () => document.getElementById('importWaliKelasInput').click());
+    document.getElementById('importWaliKelasInput')?.addEventListener('change', handleWaliKelasImport);
+    document.getElementById('exportWaliKelasButton')?.addEventListener('click', exportWaliKelasToExcel);
+    document.getElementById('refreshWaliKelasButton')?.addEventListener('click', () => refreshWaliKelasData(true));
+
+    // 3. Listeners Admin: Siswa
     document.getElementById('downloadTemplateSiswaButton')?.addEventListener('click', downloadTemplateSiswa);
-    
     document.getElementById('importSiswaButton')?.addEventListener('click', () => document.getElementById('importSiswaInput').click());
     document.getElementById('importSiswaInput')?.addEventListener('change', handleSiswaImport);
+    document.getElementById('exportSiswaButton')?.addEventListener('click', exportSiswaToExcel);
+    document.getElementById('refreshSiswaButton')?.addEventListener('click', refreshSiswaData);
+
+    // 4. Listeners Admin: Pengguna Sistem
+    document.getElementById('downloadTemplatePenggunaButton')?.addEventListener('click', downloadTemplatePengguna);
+    document.getElementById('importPenggunaButton')?.addEventListener('click', () => document.getElementById('importPenggunaInput').click());
+    document.getElementById('importPenggunaInput')?.addEventListener('change', handlePenggunaImport);
+    document.getElementById('exportPenggunaButton')?.addEventListener('click', exportPenggunaToExcel);
+    document.getElementById('refreshPenggunaButton')?.addEventListener('click', () => refreshPenggunaData(true));
+
+    // 5. Listeners Admin: Jadwal Guru Piket
+    document.getElementById('downloadTemplatePiketButton')?.addEventListener('click', downloadTemplatePiket);
+    document.getElementById('importPiketButton')?.addEventListener('click', () => document.getElementById('importPiketInput').click());
+    document.getElementById('importPiketInput')?.addEventListener('change', handlePiketImport);
+    document.getElementById('exportPiketButton')?.addEventListener('click', exportPiketToExcel);
+    document.getElementById('refreshPiketButton')?.addEventListener('click', () => refreshPiketData(true));
     
+    // Listeners Jurnal & Riwayat
     document.getElementById('loadSiswaForJurnalButton')?.addEventListener('click', loadSiswaForJurnal);
     document.getElementById('filterRiwayatButton')?.addEventListener('click', applyRiwayatFilter);
     document.getElementById('refreshRiwayatButton')?.addEventListener('click', loadRiwayatJurnal);
