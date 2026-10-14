@@ -73,82 +73,119 @@
             <!-- BAGIAN GURU UMUM (SEPERTI DI GURU.HTML)        -->
             <!-- ============================================== -->
             
-            <div id="jurnalSection" class="content-section" style="display: none;">
+              <div id="jurnalSection" class="content-section">
                 <div class="card">
                     <div class="card-header">Input Jurnal Pembelajaran</div>
                     <form id="formJurnal">
+                        <input type="hidden" id="jurnalIdToUpdate">
                         <div class="form-grid">
-                            <div class="form-group"><label>Pilih Kelas</label><select id="jurnalKelas" required></select></div>
-                            <div class="form-group"><label>Pilih Mata Pelajaran</label><select id="jurnalMapel" required></select></div>
+                            <div class="form-group"><label for="jurnalKelas">Pilih Kelas</label><select id="jurnalKelas" required></select></div>
+                            <div class="form-group"><label for="jurnalMapel">Pilih Mata Pelajaran</label><select id="jurnalMapel" required></select></div>
                         </div>
-                        <div class="form-group" style="margin-top: 1rem;"><button type="button" id="loadSiswaForJurnalButton" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Presensi</button></div>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <button type="button" id="loadSiswaForJurnalButton" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Presensi</button>
+                        </div>
                         <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
                         <div class="form-grid">
-                            <div class="form-group"><label>Tanggal</label><input type="date" id="jurnalTanggal" required></div>
+                            <div class="form-group"><label for="jurnalTanggal">Tanggal</label><input type="date" id="jurnalTanggal" required></div>
                         </div>
-                        <div class="form-group"><label>Materi</label><textarea id="jurnalMateri" required></textarea></div>
-                        <div class="form-group"><label>Catatan Tambahan</label><textarea id="jurnalCatatan"></textarea></div>
+                        <div class="form-group"><label for="jurnalMateri">Materi</label><textarea id="jurnalMateri" required></textarea></div>
+                        <div class="form-group"><label for="jurnalCatatan">Catatan</label><textarea id="jurnalCatatan"></textarea></div>
+                        
                         <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--primary-dark);">Presensi Siswa</h4>
                         <div class="table-container">
                             <table>
-                                <thead><tr><th>NISN</th><th>Nama</th><th>Kehadiran</th></tr></thead>
-                                <tbody id="presensiTableBody"><tr><td colspan="3" style="text-align: center;">Pilih kelas dan mapel...</td></tr></tbody>
+                                <thead>
+                                    <tr>
+                                        <th class="sortable" data-type="text">NISN</th>
+                                        <th class="sortable" data-type="text">Nama</th>
+                                        <th>Kehadiran</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="presensiTableBody">
+                                    <tr><td colspan="3" style="text-align: center;">Pilih kelas dan mapel...</td></tr>
+                                </tbody>
                             </table>
                         </div>
-                        <div class="form-actions"><button type="submit" id="submitJurnalButton" class="btn btn-primary">Simpan Jurnal</button></div>
+                        <div class="form-actions">
+                            <button type="submit" id="submitJurnalButton" class="btn btn-primary">Simpan Jurnal</button>
+                            <button type="button" id="cancelJurnalEditButton" class="btn btn-secondary" style="display: none;">Batal Ubah</button>
+                        </div>
                     </form>
                 </div>
             </div>
 
+            <!-- 2. SECTION INPUT NILAI -->
             <div id="nilaiSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Input Nilai Siswa</div>
                     <form id="formFilterNilai">
                         <div class="form-grid">
-                            <div class="form-group"><label>Tahun Ajaran</label><select id="nilaiFilterTahunAjaran" required></select></div>
-                            <div class="form-group"><label>Semester</label><select id="nilaiFilterSemester" required></select></div>
-                            <div class="form-group"><label>Kelas</label><select id="nilaiFilterKelas" required></select></div>
-                            <div class="form-group"><label>Mata Pelajaran</label><select id="nilaiFilterMataPelajaran" required></select></div>
+                            <div class="form-group"><label for="nilaiFilterTahunAjaran">Tahun Ajaran</label><select id="nilaiFilterTahunAjaran" required></select></div>
+                            <div class="form-group"><label for="nilaiFilterSemester">Semester</label><select id="nilaiFilterSemester" required></select></div>
+                            <div class="form-group"><label for="nilaiFilterKelas">Kelas</label><select id="nilaiFilterKelas" required></select></div>
+                            <div class="form-group"><label for="nilaiFilterMataPelajaran">Mata Pelajaran</label><select id="nilaiFilterMataPelajaran" required></select></div>
                         </div>
-                        <div class="form-group" style="margin-top: 1.5rem;"><button type="submit" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Penilaian</button></div>
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <button type="submit" class="btn btn-secondary btn-block">Tampilkan Siswa untuk Penilaian</button>
+                        </div>
                     </form>
                     <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
                     <div id="areaInputNilai" style="display: none;">
                         <form id="formInputNilai">
                             <div class="form-group">
-                                <label for="jenisNilai">Jenis Penilaian (Contoh: Ulangan Harian 1, PTS, PAS)</label>
-                                <input type="text" id="jenisNilai" required autocomplete="off">
+                                <label for="jenisNilai">Jenis Penilaian (Contoh: Ulangan Harian 1, Tugas 2, PTS, PAS)</label>
+                                <input type="text" id="jenisNilai" placeholder="Ketik jenis penilaian di sini..." required autocomplete="off">
+                                <small id="infoModeNilai" style="display: block; margin-top: 4px; color: var(--text-light);">
+                                    *Jika jenis penilaian sudah pernah diinput, nilai lama otomatis dimuat dan dapat langsung diubah.
+                                </small>
                             </div>
+                            <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--primary-dark);">Daftar Nilai Siswa</h4>
                             <div class="table-container">
                                 <table>
-                                    <thead id="nilaiTableHead"></thead>
+                                    <thead id="nilaiTableHead">
+                                        <tr>
+                                            <th class="sortable" data-type="text" style="width: 20%;">NISN</th>
+                                            <th class="sortable" data-type="text" style="width: 50%;">Nama Siswa</th>
+                                            <th class="sortable" data-type="input-number" id="headerNilaiDinamis" style="width: 30%;">Nilai (...)</th>
+                                        </tr>
+                                    </thead>
                                     <tbody id="nilaiTableBody"></tbody>
                                 </table>
                             </div>
-                            <div class="form-group" style="margin-top: 2rem;"><button type="submit" class="btn btn-primary btn-block">Simpan Semua Nilai</button></div>
+                            <div class="form-actions" style="margin-top: 2rem;">
+                                <button type="submit" id="submitNilaiButton" class="btn btn-primary">Simpan Semua Nilai</button>
+                                <button type="button" id="cancelNilaiEditButton" class="btn btn-secondary" style="display: none;">Batal / Tutup</button>
+                            </div>
                         </form>
                     </div>
                 </div>
             </div>
 
+            <!-- 3. SECTION INPUT DISIPLIN -->
             <div id="disiplinSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Input Catatan Kedisiplinan Siswa</div>
                     <form id="formDisiplin">
+                        <input type="hidden" id="disiplinIdToUpdate">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Pencarian Siswa</label>
-                                <input type="text" id="nisnDisiplinInput" placeholder="Ketik NISN atau Nama..." autocomplete="off" required>
+                                <label for="nisnDisiplinInput">Pencarian Siswa</label>
+                                <input type="text" id="nisnDisiplinInput" placeholder="Ketik NISN atau Nama Siswa..." autocomplete="off" required>
                                 <div id="nisnSuggestions" class="suggestions-container"></div>
                             </div>
-                            <div class="form-group"><label>Nama Lengkap</label><input type="text" id="namaSiswaDisiplin" disabled></div>
+                            <div class="form-group"><label>Nama Lengkap</label><input type="text" id="namaSiswaDisiplin" disabled placeholder="Otomatis Terisi"></div>
                         </div>
-                        <div class="form-group"><label>Pilih Pelanggaran</label><select id="deskripsiDisiplinInput" required></select></div>
-                        <div class="form-actions"><button type="submit" class="btn btn-primary">Simpan Catatan Disiplin</button></div>
+                        <div class="form-group"><label for="deskripsiDisiplinInput">Pilih Pelanggaran</label><select id="deskripsiDisiplinInput" required></select></div>
+                        <div class="form-actions">
+                            <button type="submit" id="submitDisiplinButton" class="btn btn-primary">Simpan Catatan Disiplin</button>
+                            <button type="button" id="cancelDisiplinEditButton" class="btn btn-secondary" style="display: none;">Batal Ubah</button>
+                        </div>
                     </form>
                 </div>
             </div>
             
+            <!-- 4. SECTION RIWAYAT JURNAL -->
             <div id="riwayatJurnalSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Riwayat Jurnal Mengajar Anda</div>
@@ -161,17 +198,29 @@
                     <div class="form-actions">
                         <button type="button" id="filterRiwayatButton" class="btn btn-primary">Terapkan Filter</button>
                         <button type="button" id="refreshRiwayatButton" class="btn btn-secondary">Refresh</button>
+                        <button type="button" id="exportRiwayatButton" class="btn btn-success" style="display: none;">Export Excel</button>
                     </div>
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Tanggal</th><th>Kelas</th><th>Mata Pelajaran</th><th>Materi & Catatan</th></tr></thead>
-                            <tbody id="riwayatJurnalTableBody"></tbody>
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-type="date">Tanggal</th>
+                                    <th class="sortable" data-type="text">Kelas</th>
+                                    <th class="sortable" data-type="text">Mata Pelajaran</th>
+                                    <th class="sortable" data-type="text">Materi & Catatan</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="riwayatJurnalTableBody">
+                                <tr><td colspan="5" style="text-align: center;">Gunakan filter untuk menampilkan riwayat.</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- 5. SECTION REKAP NILAI -->
             <div id="riwayatNilaiSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Riwayat & Rekap Nilai Siswa</div>
@@ -183,40 +232,82 @@
                     </div>
                     <div class="form-actions">
                         <button type="button" id="filterRiwayatNilaiButton" class="btn btn-primary">Tampilkan Nilai</button>
+                        <button type="button" id="refreshRiwayatNilaiButton" class="btn btn-secondary">Refresh</button>
+                        <button type="button" id="exportNilaiAsliButton" class="btn btn-success" style="display: none;">Export Excel (Nilai Asli)</button>
                     </div>
-                    <div id="areaKonversiExport" style="display: none; background-color: #f8f9fa; padding: 1.5rem; margin-top: 1.5rem; border: 1px solid var(--border-color);">
+
+                    <!-- AREA KONVERSI & EXPORT (MUNCUL OTOMATIS) -->
+                    <div id="areaKonversiExport" style="display: none; background-color: #f8f9fa; padding: 1.5rem; border-radius: var(--border-radius); margin-top: 1.5rem; border: 1px solid var(--border-color);">
+                        <h4 style="margin-bottom: 1rem; color: var(--primary-dark);">Konversi & Export Excel</h4>
                         <div class="form-grid">
-                            <div class="form-group"><label>Nilai Minimum Target</label><input type="number" id="konversiMin" value="75"></div>
-                            <div class="form-group"><label>Nilai Maksimum Target</label><input type="number" id="konversiMax" value="100"></div>
-                            <div class="form-group" style="display: flex; align-items: flex-end;"><button type="button" id="exportRiwayatNilaiButton" class="btn btn-success btn-block">Export Excel (Dikonversi)</button></div>
+                            <div class="form-group">
+                                <label for="konversiMin">Nilai Minimum Target (Contoh: KKM 75)</label>
+                                <input type="number" id="konversiMin" value="75" min="0" max="100">
+                            </div>
+                            <div class="form-group">
+                                <label for="konversiMax">Nilai Maksimum Target</label>
+                                <input type="number" id="konversiMax" value="100" min="0" max="100">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: flex-end;">
+                                <button type="button" id="exportRiwayatNilaiButton" class="btn btn-success btn-block">Export Excel (Dikonversi)</button>
+                            </div>
                         </div>
+                        <span style="font-size: 0.8rem; color: var(--text-light); margin-top: 0.5rem; display: block;">
+                            *Rumus Konversi: ((Nilai Asli / 100) × (Maksimum - Minimum)) + Minimum
+                        </span>
                     </div>
+
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Tahun / Smt</th><th>NISN</th><th>Nama Siswa</th><th>Jenis Penilaian</th><th>Nilai Asli</th></tr></thead>
-                            <tbody id="riwayatNilaiTableBody"></tbody>
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-type="text">Tahun / Smt</th>
+                                    <th class="sortable" data-type="text">NISN</th>
+                                    <th class="sortable" data-type="text">Nama Siswa</th>
+                                    <th class="sortable" data-type="text">Jenis Penilaian</th>
+                                    <th class="sortable" data-type="number">Nilai Asli</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="riwayatNilaiTableBody">
+                                <tr><td colspan="6" style="text-align: center;">Gunakan filter untuk menampilkan data nilai.</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- 6. SECTION RIWAYAT DISIPLIN -->
             <div id="riwayatDisiplinSection" class="content-section" style="display: none;">
                 <div class="card">
                     <div class="card-header">Riwayat Catatan Disiplin Siswa</div>
-                    <div class="form-grid">
-                        <div class="form-group"><label>Cari NISN</label><input type="text" id="riwayatDisiplinFilterNisn"></div>
+                    <div id="riwayatDisiplinFilterForm" class="form-grid">
+                        <div class="form-group"><label>Cari NISN / Nama</label><input type="text" id="riwayatDisiplinFilterNisn" placeholder="Masukkan NISN atau Nama siswa..."></div>
                         <div class="form-group"><label>Dari Tanggal</label><input type="date" id="riwayatDisiplinFilterTanggalMulai"></div>
                         <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="riwayatDisiplinFilterTanggalSelesai"></div>
                     </div>
                     <div class="form-actions">
                         <button type="button" id="filterRiwayatDisiplinButton" class="btn btn-primary">Terapkan Filter</button>
+                        <button type="button" id="refreshRiwayatDisiplinButton" class="btn btn-secondary">Refresh</button>
+                        <button type="button" id="exportRiwayatDisiplinButton" class="btn btn-success" style="display: none;">Export Excel</button>
                     </div>
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Tanggal</th><th>NISN</th><th>Nama Siswa</th><th>Pelanggaran (Poin)</th><th>Pencatat</th></tr></thead>
-                            <tbody id="riwayatDisiplinTableBody"></tbody>
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-type="date">Tanggal</th>
+                                    <th class="sortable" data-type="text">NISN</th>
+                                    <th class="sortable" data-type="text">Nama Siswa</th>
+                                    <th class="sortable" data-type="number">Pelanggaran (Poin)</th>
+                                    <th class="sortable" data-type="text">Pencatat</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="riwayatDisiplinTableBody">
+                                <tr><td colspan="6" style="text-align: center;">Gunakan filter untuk menampilkan riwayat.</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
