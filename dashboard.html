@@ -18,6 +18,66 @@
     <link rel="icon" href="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Wahyudi-1/JurnalPembelajaranSMANEMA/main/Logo.png">
     <meta name="apple-mobile-web-app-title" content="Jurnal Guru">
+
+    <!-- Tambahan Style untuk Fitur Sortir Tabel & Header Aksi -->
+    <style>
+        .table-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 0.75rem;
+        }
+        .table-header-bar h4 {
+            margin: 0 !important;
+            color: var(--primary-dark);
+        }
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 24px !important;
+            transition: background-color 0.2s ease;
+        }
+        th.sortable:hover {
+            background-color: rgba(0, 0, 0, 0.06);
+        }
+        th.sortable::after {
+            content: "⇅";
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            opacity: 0.4;
+        }
+        th.sortable.asc::after {
+            content: "▲";
+            opacity: 1;
+        }
+        th.sortable.desc::after {
+            content: "▼";
+            opacity: 1;
+        }
+        .btn-delete-all {
+            background-color: #dc3545;
+            color: #ffffff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s ease;
+        }
+        .btn-delete-all:hover {
+            opacity: 0.9;
+        }
+    </style>
 </head>
 <body>
     <!-- HEADER BARU YANG RESPONSIVE -->
@@ -80,11 +140,17 @@
                         <div class="form-group"><label for="jurnalMateri">Materi yang Diajarkan</label><textarea id="jurnalMateri" placeholder="Contoh: Bab 3 - Sistem Reproduksi Manusia" required></textarea></div>
                         <div class="form-group"><label for="jurnalCatatan">Catatan Tambahan (Opsional)</label><textarea id="jurnalCatatan" placeholder="Contoh: Siswa sangat antusias, perlu pengulangan materi."></textarea></div>
                         
-                        <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--primary-dark);">Presensi Siswa</h4>
+                        <div class="table-header-bar" style="margin-top: 1.5rem;">
+                            <h4>Presensi Siswa</h4>
+                        </div>
                         <div class="table-container">
                             <table>
                                 <thead>
-                                    <tr><th>NISN</th><th>Nama</th><th>Kehadiran</th></tr>
+                                    <tr>
+                                        <th class="sortable" data-type="text">NISN</th>
+                                        <th class="sortable" data-type="text">Nama</th>
+                                        <th>Kehadiran</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="presensiTableBody">
                                     <tr><td colspan="3" style="text-align: center;">Pilih kelas dan mata pelajaran, lalu klik "Tampilkan Siswa".</td></tr>
@@ -132,11 +198,23 @@
                     </div>
                     
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Hasil Pencarian Riwayat</h4>
+                    <div class="table-header-bar">
+                        <h4>Hasil Pencarian Riwayat</h4>
+                        <button type="button" id="deleteAllJurnalButton" class="btn-delete-all admin-only" style="display: none;">
+                            🗑️ Hapus Semua Riwayat Jurnal
+                        </button>
+                    </div>
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr><th>Tanggal</th><th>Kelas</th><th>Mata Pelajaran</th><th>Materi</th><th>Catatan</th><th style="text-align:right;">Aksi</th></tr>
+                                <tr>
+                                    <th class="sortable" data-type="date">Tanggal</th>
+                                    <th class="sortable" data-type="text">Kelas</th>
+                                    <th class="sortable" data-type="text">Mata Pelajaran</th>
+                                    <th class="sortable" data-type="text">Materi</th>
+                                    <th class="sortable" data-type="text">Catatan</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
                             </thead>
                             <tbody id="riwayatJurnalTableBody">
                                 <tr><td colspan="6" style="text-align: center;">Gunakan filter untuk menampilkan riwayat.</td></tr>
@@ -161,11 +239,24 @@
                     </div>
                     
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Hasil Pencarian Riwayat</h4>
+                    <div class="table-header-bar">
+                        <h4>Hasil Pencarian Riwayat</h4>
+                        <button type="button" id="deleteAllDisiplinButton" class="btn-delete-all admin-only" style="display: none;">
+                            🗑️ Hapus Semua Riwayat Disiplin
+                        </button>
+                    </div>
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr><th>Tanggal</th><th>NISN</th><th>Nama Siswa</th><th>Pelanggaran</th><th>Poin</th><th>Pencatat</th><th style="text-align:right;">Aksi</th></tr>
+                                <tr>
+                                    <th class="sortable" data-type="date">Tanggal</th>
+                                    <th class="sortable" data-type="text">NISN</th>
+                                    <th class="sortable" data-type="text">Nama Siswa</th>
+                                    <th class="sortable" data-type="text">Pelanggaran</th>
+                                    <th class="sortable" data-type="number">Poin</th>
+                                    <th class="sortable" data-type="text">Pencatat</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
                             </thead>
                             <tbody id="riwayatDisiplinTableBody">
                                 <tr><td colspan="7" style="text-align: center;">Gunakan filter untuk menampilkan riwayat.</td></tr>
@@ -188,10 +279,22 @@
                         <div class="form-actions"><button type="submit" class="btn btn-accent">Simpan Tugas</button></div>
                     </form>
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Penugasan Aktif</h4>
+                    <div class="table-header-bar">
+                        <h4>Daftar Penugasan Aktif</h4>
+                        <button type="button" id="deleteAllPenugasanButton" class="btn-delete-all">
+                            🗑️ Hapus Semua Penugasan
+                        </button>
+                    </div>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Guru</th><th>Kelas</th><th>Mata Pelajaran</th><th style="text-align:right;">Aksi</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-type="text">Guru</th>
+                                    <th class="sortable" data-type="text">Kelas</th>
+                                    <th class="sortable" data-type="text">Mata Pelajaran</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
+                            </thead>
                             <tbody id="penugasanTableBody"></tbody>
                         </table>
                     </div>
@@ -210,10 +313,21 @@
                         <div class="form-actions"><button type="submit" class="btn btn-accent">Simpan Wali Kelas</button></div>
                     </form>
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Wali Kelas Aktif</h4>
+                    <div class="table-header-bar">
+                        <h4>Daftar Wali Kelas Aktif</h4>
+                        <button type="button" id="deleteAllWaliKelasButton" class="btn-delete-all">
+                            🗑️ Hapus Semua Wali Kelas
+                        </button>
+                    </div>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Nama Wali Kelas</th><th>Kelas yang Diampu</th><th style="text-align:right;">Aksi</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-type="text">Nama Wali Kelas</th>
+                                    <th class="sortable" data-type="text">Kelas yang Diampu</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
+                            </thead>
                             <tbody id="waliKelasTableBody"></tbody>
                         </table>
                     </div>
@@ -222,10 +336,9 @@
 
             <!-- 7. SECTION ADMIN: SISWA -->
             <div id="siswaSection" class="content-section admin-only" style="display: none;">
-                 <div class="card">
+                <div class="card">
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <span>Manajemen Database Siswa</span>
-                        <!-- TOMBOL UNDUH TEMPLATE DITAMBAHKAN DI SINI -->
                         <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                             <input type="file" id="importSiswaInput" accept=".csv" style="display: none;">
                             <button id="downloadTemplateSiswaButton" class="btn btn-sm btn-secondary">Unduh Template</button>
@@ -248,10 +361,22 @@
                         </div>
                     </form>
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Siswa Terdaftar</h4>
+                    <div class="table-header-bar">
+                        <h4>Daftar Siswa Terdaftar</h4>
+                        <button type="button" id="deleteAllSiswaButton" class="btn-delete-all">
+                            🗑️ Hapus Semua Data Siswa
+                        </button>
+                    </div>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>NISN</th><th>Nama</th><th>Kelas</th><th style="text-align:right;">Aksi</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-type="text">NISN</th>
+                                    <th class="sortable" data-type="text">Nama</th>
+                                    <th class="sortable" data-type="text">Kelas</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
+                            </thead>
                             <tbody id="siswaResultsTableBody"></tbody>
                         </table>
                     </div>
@@ -285,11 +410,21 @@
                         </div>
                     </form>
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Akun Sistem</h4>
+                    <div class="table-header-bar">
+                        <h4>Daftar Akun Sistem</h4>
+                        <button type="button" id="deleteAllPenggunaButton" class="btn-delete-all">
+                            🗑️ Hapus Semua Pengguna (Non-Admin)
+                        </button>
+                    </div>
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr><th>Nama Lengkap</th><th>Email</th><th>Peran</th><th style="text-align:right;">Aksi</th></tr>
+                                <tr>
+                                    <th class="sortable" data-type="text">Nama Lengkap</th>
+                                    <th class="sortable" data-type="text">Email</th>
+                                    <th class="sortable" data-type="text">Peran</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
                             </thead>
                             <tbody id="penggunaTableBody">
                                 <tr><td colspan="4" style="text-align: center;">Memuat daftar pengguna...</td></tr>
@@ -327,10 +462,22 @@
                         <div class="form-actions"><button type="submit" class="btn btn-primary">Tambah Jadwal Piket</button></div>
                     </form>
                     <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--primary-dark);">Daftar Jadwal Piket Aktif</h4>
+                    <div class="table-header-bar">
+                        <h4>Daftar Jadwal Piket Aktif</h4>
+                        <button type="button" id="deleteAllPiketButton" class="btn-delete-all">
+                            🗑️ Hapus Semua Jadwal Piket
+                        </button>
+                    </div>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Hari</th><th>Nama Guru Piket</th><th>Nomor WhatsApp</th><th style="text-align:right;">Aksi</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-type="day">Hari</th>
+                                    <th class="sortable" data-type="text">Nama Guru Piket</th>
+                                    <th class="sortable" data-type="text">Nomor WhatsApp</th>
+                                    <th style="text-align:right;">Aksi</th>
+                                </tr>
+                            </thead>
                             <tbody id="piketTableBody"><tr><td colspan="4" style="text-align:center;">Memuat jadwal...</td></tr></tbody>
                         </table>
                     </div>
