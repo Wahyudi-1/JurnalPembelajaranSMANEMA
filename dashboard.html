@@ -33,6 +33,18 @@
             margin: 0 !important;
             color: var(--primary-dark);
         }
+        .card-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
         th.sortable {
             cursor: pointer;
             user-select: none;
@@ -269,7 +281,16 @@
             <!-- 5. SECTION ADMIN: PENUGASAN -->
             <div id="penugasanSection" class="content-section admin-only" style="display: none;">
                 <div class="card">
-                    <div class="card-header">Manajemen Penugasan Guru (Mata Pelajaran)</div>
+                    <div class="card-header card-header-flex">
+                        <span>Manajemen Penugasan Guru (Mata Pelajaran)</span>
+                        <div class="header-actions">
+                            <input type="file" id="importPenugasanInput" accept=".csv" style="display: none;">
+                            <button type="button" id="downloadTemplatePenugasanButton" class="btn btn-sm btn-secondary">Unduh Template</button>
+                            <button type="button" id="importPenugasanButton" class="btn btn-sm btn-info">Import CSV</button>
+                            <button type="button" id="exportPenugasanButton" class="btn btn-sm btn-success">Export Excel</button>
+                            <button type="button" id="refreshPenugasanButton" class="btn btn-sm btn-secondary">Refresh</button>
+                        </div>
+                    </div>
                     <form id="formPenugasan">
                         <div class="form-grid">
                             <div class="form-group"><label for="penugasanGuru">Pilih Guru</label><select id="penugasanGuru" required></select></div>
@@ -304,7 +325,16 @@
             <!-- 6. SECTION ADMIN: WALI KELAS -->
             <div id="waliKelasSection" class="content-section admin-only" style="display: none;">
                 <div class="card">
-                    <div class="card-header">Manajemen Wali Kelas</div>
+                    <div class="card-header card-header-flex">
+                        <span>Manajemen Wali Kelas</span>
+                        <div class="header-actions">
+                            <input type="file" id="importWaliKelasInput" accept=".csv" style="display: none;">
+                            <button type="button" id="downloadTemplateWaliKelasButton" class="btn btn-sm btn-secondary">Unduh Template</button>
+                            <button type="button" id="importWaliKelasButton" class="btn btn-sm btn-info">Import CSV</button>
+                            <button type="button" id="exportWaliKelasButton" class="btn btn-sm btn-success">Export Excel</button>
+                            <button type="button" id="refreshWaliKelasButton" class="btn btn-sm btn-secondary">Refresh</button>
+                        </div>
+                    </div>
                     <form id="formWaliKelas">
                         <div class="form-grid">
                             <div class="form-group"><label>Pilih Guru / Wali Kelas</label><select id="waliKelasGuru" required></select></div>
@@ -337,14 +367,14 @@
             <!-- 7. SECTION ADMIN: SISWA -->
             <div id="siswaSection" class="content-section admin-only" style="display: none;">
                 <div class="card">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div class="card-header card-header-flex">
                         <span>Manajemen Database Siswa</span>
-                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                        <div class="header-actions">
                             <input type="file" id="importSiswaInput" accept=".csv" style="display: none;">
-                            <button id="downloadTemplateSiswaButton" class="btn btn-sm btn-secondary">Unduh Template</button>
-                            <button id="importSiswaButton" class="btn btn-sm btn-info">Import CSV</button>
-                            <button id="exportSiswaButton" class="btn btn-sm btn-success">Export Excel</button>
-                            <button id="refreshSiswaButton" class="btn btn-sm btn-secondary">Refresh</button>
+                            <button type="button" id="downloadTemplateSiswaButton" class="btn btn-sm btn-secondary">Unduh Template</button>
+                            <button type="button" id="importSiswaButton" class="btn btn-sm btn-info">Import CSV</button>
+                            <button type="button" id="exportSiswaButton" class="btn btn-sm btn-success">Export Excel</button>
+                            <button type="button" id="refreshSiswaButton" class="btn btn-sm btn-secondary">Refresh</button>
                         </div>
                     </div>
                     
@@ -386,7 +416,16 @@
             <!-- 8. SECTION ADMIN: PENGGUNA -->
             <div id="penggunaSection" class="content-section admin-only" style="display: none;">
                 <div class="card">
-                    <div class="card-header">Manajemen Pengguna Sistem</div>
+                    <div class="card-header card-header-flex">
+                        <span>Manajemen Pengguna Sistem</span>
+                        <div class="header-actions">
+                            <input type="file" id="importPenggunaInput" accept=".csv" style="display: none;">
+                            <button type="button" id="downloadTemplatePenggunaButton" class="btn btn-sm btn-secondary">Unduh Template</button>
+                            <button type="button" id="importPenggunaButton" class="btn btn-sm btn-info">Import CSV</button>
+                            <button type="button" id="exportPenggunaButton" class="btn btn-sm btn-success">Export Excel</button>
+                            <button type="button" id="refreshPenggunaButton" class="btn btn-sm btn-secondary">Refresh</button>
+                        </div>
+                    </div>
                     <form id="formPengguna">
                         <input type="hidden" id="formUserIdToUpdate">
                         <div class="form-grid">
@@ -437,7 +476,16 @@
             <!-- 9. SECTION ADMIN: JADWAL GURU PIKET -->
             <div id="piketSection" class="content-section admin-only" style="display: none;">
                 <div class="card">
-                    <div class="card-header">Jadwal Guru Piket Harian</div>
+                    <div class="card-header card-header-flex">
+                        <span>Jadwal Guru Piket Harian</span>
+                        <div class="header-actions">
+                            <input type="file" id="importPiketInput" accept=".csv" style="display: none;">
+                            <button type="button" id="downloadTemplatePiketButton" class="btn btn-sm btn-secondary">Unduh Template</button>
+                            <button type="button" id="importPiketButton" class="btn btn-sm btn-info">Import CSV</button>
+                            <button type="button" id="exportPiketButton" class="btn btn-sm btn-success">Export Excel</button>
+                            <button type="button" id="refreshPiketButton" class="btn btn-sm btn-secondary">Refresh</button>
+                        </div>
+                    </div>
                     <form id="formPiket">
                         <div class="form-grid">
                             <div class="form-group">
